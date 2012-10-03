@@ -1,0 +1,1 @@
+I made this to show a basic understanding of the Python language. This is a *very* simple game written in Python using the pygame library. This is not an award-winning game, but it was my son's favourite game when he was aged three.

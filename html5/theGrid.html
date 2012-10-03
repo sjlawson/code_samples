@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+    <title>Example 7 (Generating a 2500 × 2500 grid)</title>
+
+<script type='text/javascript'>
+window.onload = function() {
+    var tileMap = [];
+    var tile = {
+        width: 32,
+        height: 32
+    }
+    var grid = {
+        width: 2500,
+        height: 2500
+    }
+    var keys = {
+        UP: 38,
+        DOWN: 40,
+        LEFT: 37,
+        RIGHT: 39
+    }
+    var scroll = {
+        x: 0,
+        y: 0
+    }
+    var canvas = document.getElementById('myCanvas');
+    var c = canvas.getContext('2d');
+    window.addEventListener('keydown', handleKeyDown, false);
+    canvas.addEventListener('click', handleClick, false);
+    
+    // initializeGrid();
+    draw();
+    
+    function handleClick(e) {
+        var row = Math.floor((e.clientX + scroll.x) / tile.width);
+        var col = Math.floor((e.clientY + scroll.y) / tile.height);
+        
+        if(tileMap[row] == null) {
+            tileMap[row] = [];
+            tileMap[row][col] = 1;
+        } else {
+            switch(tileMap[row][col]) {
+                case null || 0:
+                    tileMap[row][col] = 1;
+                    break;
+                case 1:
+                    tileMap[row][col] = 2;
+                    break;
+                case 2:
+                    tileMap[row][col] = 0;
+                    break;
+            }
+        }
+        
+        
+        //next - update the draw function
+    }
+    
+    function handleKeyDown(e) {
+        switch(e.keyCode) {
+            case keys.UP:
+                scroll.y -= ((scroll.y - tile.height) >= 0 ) ? tile.height : 0;
+                break;
+            case keys.DOWN:
+                scroll.y += ((scroll.y + tile.height) <= grid.height ) ? tile.height : 0;
+                break;
+            case keys.LEFT:
+                scroll.x -= ((scroll.x - tile.width) >= 0 ) ? tile.width : 0;
+                break;
+            case keys.RIGHT:
+                scroll.x += ((scroll.x + tile.width) <= grid.width ) ? tile.width : 0;
+                break;
+        }
+        document.getElementById('scrollx').innerHTML = scroll.x;
+        document.getElementById('scrolly').innerHTML = scroll.y;
+        
+    }
+    
+    function initializeGrid() {
+        for(var i = 0; i < grid.width; i++) {
+            tileMap[i] = [];
+            for(var j = 0; j < grid.height; j++) {
+                if((i % 2) == 0 && (j % 2) == 0){
+                    tileMap[i][j] = 0;
+                } else {
+                    tileMap[i][j] = 1;
+                }
+            }
+        }
+    }
+    
+    function draw() {
+        c.fillStyle = '#FFFFFF';
+        c.fillRect(0,0,canvas.width, canvas.height);
+        c.fillStyle = '#000000';
+        
+        var startRow = Math.floor(scroll.x / tile.width);
+        var startCol = Math.floor(scroll.y / tile.height);
+        var rowCount = startRow + Math.floor(canvas.width / tile.width) + 1;
+        var colCount = startCol + Math.floor(canvas.height / tile.height) + 1;
+        
+        rowCount = ((startRow + rowCount) > grid.width) ? grid.width : rowCount;
+        colCount = ((startCol + colCount) > grid.height) ? grid.height : colCount;
+        
+        for(var row = startRow; row < rowCount; row++){
+            for(var col = startCol; col < colCount; col++){
+                var tilePositionX = tile.width * row;
+                var tilePositionY = tile.height * col;
+                
+                tilePositionX -= scroll.x;
+                tilePositionY -= scroll.y;
+                if(tileMap[row] != null && tileMap[row][col] != null ) {
+                    if(tileMap[row][col] == 1) {
+                        c.fillStyle = '#CC0000';
+                        c.fillRect(tilePositionX, tilePositionY, tile.width, tile.height);
+                        c.fillStyle = '#000000';
+                    }
+                    if(tileMap[row][col] == 2) {
+                        c.fillStyle = '#0000CC';
+                        c.fillRect(tilePositionX, tilePositionY, tile.width, tile.height);
+                        c.fillStyle = '#000000';
+                    }
+                } else {
+                    if ((row % 2) == 0 && (col % 2) == 0) {
+                    c.strokeRect(tilePositionX, tilePositionY, tile.width, tile.height);
+                    } else {
+                    c.fillRect(tilePositionX, tilePositionY, tile.width, tile.height);
+                    }
+                }
+                
+            }
+        }
+        setTimeout(draw, 1);
+    }
+    
+}
+
+</script>
+</head>
+
+<body>
+<canvas id='myCanvas' width='300' height='300' ></canvas>
+<br />
+Scroll X: <span id="scrollx">0</span><br />
+Scroll Y: <span id="scrolly">0</span>
+
+</body>
+</html>

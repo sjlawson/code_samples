@@ -1,0 +1,1 @@
+The files, sprite.js and theGrid.html are included here as examples of 2D canvas programming projects. The two files are not (currently) related. theGrid.html is just an experiment in controlling a grid with arrow keys, and listening for mouse click events in specific grid locations. 

@@ -1,0 +1,65 @@
+
+The first example of a project I created is a Joomla component that I authored for Dr. Tavel, an Indianapolis-based optometrist chain. See it in use at: http://drtavel.com/locations
+To protect any rights liability for the following Joomla component, I am including a controller, a default view, and a text file with the directory struction of com_locations. 
+Conponent directory structure:
+com_locations_structure.php
+Cotroller file for administrative operations:
+admin/controllers/location.php
+Default front-end view:
+site/views/locations/tmpl/default.php
+
+Next, a stock index chart app that I made for a trading-education website. 
+yahoo_stocks.php - OOPHP class that I made for retrieving stock quote data and charts from finance.yahoo.com, which is meant to be implemented using an Ajax method like:
+
+<div id="stock_frame">
+<p style="margin-left: 50px;text-decoration: blink;font-size: 16px; color: blue;">Loading...</p>
+</div>
+<script type="text/javascript">
+getNewContent('/scripts/yahoo_stocks.php','stock_frame');
+</script>
+
+
+http://goodworksconnect.org/community
+    custom programming for jomsocial component
+http://goodworksconnect.org/grants-new
+    custom php5/mysql web app for submitting (or creating) grant applications 
+
+koorsen.com - Branch Locations (item in top menu)
+Here I created a WordPress plugin, called prapagata, which, when used in a multi-site network installation, allows one to create content on a master site that propagates to child sites. Attached is an early-stage development version and readme file.
+propagata.php and propagata_readme.txt
+
+Lastly (for now, unless you would like to see more examples) - custom programming for an online employment agency called 10til2.net - whose aim is to provide a job search site for, e.g. parents who want a part-time job from the hours of 10 to 2pm whilst the kids are in school:
+www.10til2.net - It has been about 2 years since I actively worked on this site, so the current version does not display my work. In fact you would need the administrator password to see my work anyway, because all my work was devoted to writing code for administration. 
+Attached is are two files which use a OOPHP framework called 'QCodo' (www.qcodo.com) 
+open_job_list.php
+open_job_list.tpl.php
+
+For your further consideration, below is a method for loading all 'Active' clients (as in employers who are actively hiring), and makes full use of QCodo's very powerful Object Relation Model: (please expand your email window for this, or it becomes rather difficult to follow the code indentations)
+
+  /**
+  * Load all Active Clients
+  * @param QQClause[] $objOptionalClauses additional optional QQClause objects for this query
+  * @return Client[]
+  */
+                public static function LoadAllActive($objOptionalClauses = null, $intFranchiseId = null) {
+                        // Call Client::QueryArray to perform the LoadAll query
+                        try {
+                                if($intFranchiseId)
+                                        return Client::QueryArray(
+                                                QQ::AndCondition(
+                                                        QQ::Equal(QQN::Client()->Active,1),
+                                                        QQ::NotEqual(QQN::Client()->MajorStatus,"Inactive"),
+                                                        QQ::Equal(QQN::Client()->FranchiseId,$intFranchiseId) 
+                                        ), $objOptionalClauses);
+                                else
+                                        return Client::QueryArray(
+                                                QQ::AndCondition(
+                                                        QQ::Equal(QQN::Client()->Active,1), 
+                                                        QQ::NotEqual(QQN::Client()->MajorStatus,"Inactive")),
+                                                $objOptionalClauses);
+                                                
+                        } catch (QCallerException $objExc) {
+                                $objExc->IncrementOffset();
+                                throw $objExc;
+                        }
+                }
