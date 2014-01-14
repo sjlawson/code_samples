@@ -1,0 +1,240 @@
+/*******************************************************************************
+ * Copyright (c) 2013, Bashpole Software, Inc.
+ * All rights reserved.
+ ******************************************************************************/
+package com.bashpole.updentity.utility;
+
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import net.sf.json.test.JSONAssert;
+
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.bashpole.updentity.exporter.BatchbookContactsExporter;
+import com.bashpole.updentity.model.ContactKeys;
+import com.bashpole.updentity.testutilities.TestUtilities;
+
+/**
+ * @author Mitesh
+ * 
+ */
+public class NeonCRMUtilTest
+    {
+    private static final String DEFAULT_MOCKDATA_PATH = "/home/samuel/workspace/updentity_rest_sjl/src/Test/java/com/bashpole/updentity/testutilities/resources/data";
+
+    
+    /**
+     * Test method for {@link NeonCRMUtil#convertToUpdentity(JSONObject)}
+     */
+    @Ignore
+    @Test
+    public final void testConvertToUpdentity()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#convertToNeon(JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testConvertToNeon()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     *  Test method for {@link NoenCRMUtil#addName(final JSONObject primaryContactObject, JSONObject convertedContact )}.
+     * @throws IOException
+     */
+    @Test
+    public final void testAddName() throws IOException
+        {
+        JSONObject resultantContact = new JSONObject(); // output object
+        JSONObject neonContact = new JSONObject(); // updentity contact  | input1
+       
+        // Case 1: Missing fields - best behaviour is to return no change to contact
+        JSONObject initContact = resultantContact;
+        NeonCRMUtil.addName(neonContact, resultantContact);
+        JSONAssert.assertEquals(initContact, resultantContact);
+
+        String jsonFilename = DEFAULT_MOCKDATA_PATH + "/neon/name/importerinput.json";
+        
+        String jsonString = TestUtilities.readFileToString(jsonFilename);
+        JSONObject testMainObject = JSONObject.fromObject(jsonString);
+        
+        Iterator<?> keys = testMainObject.keys();
+        while( keys.hasNext() )
+            {
+            String key = (String)keys.next();
+            if( testMainObject.get(key) instanceof JSONArray )
+                {
+                JSONArray testArray = testMainObject.getJSONArray(key);
+                resultantContact = new JSONObject();
+
+                //TODO: add TestUtilitites.removeDatesAndEncryptedFields(o) ;
+                
+                JSONObject externalContact = testArray.getJSONObject(0).getJSONObject("primaryContact");
+                JSONObject expectedOutcome = testArray.getJSONObject(1);
+               
+                NeonCRMUtil.addName(externalContact, resultantContact);
+              
+System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.toString()+"\nACTUAL:\n"+resultantContact.toString());
+                JSONAssert.assertEquals(expectedOutcome, resultantContact);
+                }
+            }
+        }
+    
+    /**
+     * Test method for {@link NoenCRMUtil#addPhones(final JSONObject primaryContactObject, JSONObject convertedContact )}.
+     * @throws IOException
+     */
+    @Test
+    public final void testAddPhones() throws IOException
+        {
+        JSONObject resultantContact = new JSONObject(); // output object
+        JSONObject neonContact = new JSONObject(); // updentity contact  | input1
+       
+        // Case 1: Missing fields - best behaviour is to return no change to contact
+        JSONObject initContact = resultantContact;
+        NeonCRMUtil.addPhones(neonContact, resultantContact);
+        JSONAssert.assertEquals(initContact, resultantContact);
+
+        String jsonFilename = DEFAULT_MOCKDATA_PATH + "/neon/phone/importerinput.json";
+        
+        String jsonString = TestUtilities.readFileToString(jsonFilename);
+        JSONObject testMainObject = JSONObject.fromObject(jsonString);
+        
+        Iterator<?> keys = testMainObject.keys();
+        while( keys.hasNext() )
+            {
+            String key = (String)keys.next();
+            if( testMainObject.get(key) instanceof JSONArray )
+                {
+                JSONArray testArray = testMainObject.getJSONArray(key);
+                resultantContact = new JSONObject();
+
+                //TODO: add TestUtilitites.removeDatesAndEncryptedFields(o) ;
+                
+                JSONObject externalContact = testArray.getJSONObject(0).getJSONObject("primaryContact");
+                JSONObject expectedOutcome = testArray.getJSONObject(1);
+               
+                NeonCRMUtil.addPhones(externalContact, resultantContact);
+              
+System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.toString()+"\nACTUAL:\n"+resultantContact.toString());
+                JSONAssert.assertEquals(expectedOutcome, resultantContact);
+                }
+            }
+        }
+    
+    /**
+     * Test method for {@link NoenCRMUtil#addEmails(final JSONObject primaryContactObject, JSONObject convertedContact )}.
+     * @throws IOException 
+     */
+    @Test
+    public final void testAddEmails() throws IOException
+        {
+        JSONObject resultantContact = new JSONObject(); // output object
+        JSONObject neonContact = new JSONObject(); // updentity contact  | input1
+       
+        // Case 1: Missing fields - best behaviour is to return no change to contact
+        JSONObject initContact = resultantContact;
+        NeonCRMUtil.addEmails(neonContact, resultantContact);
+        JSONAssert.assertEquals(initContact, resultantContact);
+
+        String jsonFilename = DEFAULT_MOCKDATA_PATH + "/neon/email/importerinput.json";
+        
+        String jsonString = TestUtilities.readFileToString(jsonFilename);
+        JSONObject testMainObject = JSONObject.fromObject(jsonString);
+        
+        Iterator<String> keys = testMainObject.keys();
+        
+        // for(String key : keys)
+        while( keys.hasNext() )
+            {
+            String key = (String)keys.next();
+            if( testMainObject.get(key) instanceof JSONArray )
+                {
+                JSONArray testArray = testMainObject.getJSONArray(key);
+                resultantContact = new JSONObject();
+
+                //TODO: add TestUtilitites.removeDatesAndEncryptedFields(o) ;
+                
+                JSONObject externalContact = testArray.getJSONObject(0).getJSONObject("primaryContact");
+                JSONObject expectedOutcome = testArray.getJSONObject(1);
+               
+                NeonCRMUtil.addEmails(externalContact, resultantContact);
+              
+System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.toString()+"\nACTUAL:\n"+resultantContact.toString());
+                JSONAssert.assertEquals(expectedOutcome, resultantContact);
+                }
+            }
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergeContacts(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergeContacts()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergeEmails(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergeEmails()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergePhones(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergePhones()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergeAddresses(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergeAddresses()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergeWorkProfiles(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergeWorkProfiles()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    /**
+     * Test method for {@link NeonCRMUtil#mergeEducation(JSONObject, JSONObject, JSONObject)}.
+     */
+    @Ignore
+    @Test
+    public final void testMergeEducation()
+        {
+        fail("Not yet implemented"); // TODO
+        }
+    
+    }
