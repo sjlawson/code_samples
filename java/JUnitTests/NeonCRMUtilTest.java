@@ -137,6 +137,63 @@ System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.t
             }
         }
     
-
+		 /**
+     * Using reflection to test multiple data types with one method - This test may replace the above tests
+     * @throws IllegalArgumentException
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     * @throws SecurityException
+     * @throws NoSuchMethodException
+     * @throws IOException
+     */
+    @Test
+    public final void testAddDataFields() throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException, NoSuchMethodException, IOException
+        {
+        String[] dataTypeArray = {"Name","Phones","Emails"};
+        
+        for(String dataType : dataTypeArray)
+            {
+            String methodName = "add"+dataType;
+            // NeonCRMUtil neonCRMUtilObj = new NeonCRMUtil();
+            //Method dataMethod = neonCRMUtilObj.getClass().getMethod(methodName, null);
+            Method dataMethod = NeonCRMUtil.class.getDeclaredMethod(methodName, JSONObject.class, JSONObject.class);
+            
+            JSONObject resultantContact = new JSONObject(); // output object
+            JSONObject neonContact = new JSONObject(); // updentity contact  | input1
+           
+            // Case 1: Missing fields - best behaviour is to return no change to contact
+            JSONObject initContact = resultantContact;
+            
+            dataMethod.invoke(null, neonContact, resultantContact);
+            
+            JSONAssert.assertEquals(initContact, resultantContact);
+    
+            String jsonFilename = DEFAULT_MOCKDATA_PATH + "/neon/"+dataType.toLowerCase()+"/importerinput.json";
+            
+            String jsonString = TestUtilities.readFileToString(jsonFilename);
+            JSONObject testMainObject = JSONObject.fromObject(jsonString);
+            
+            for(@SuppressWarnings("unchecked")Iterator<String> keys =testMainObject.keys(); keys.hasNext(); )
+                {
+                String key = (String)keys.next();
+                if( testMainObject.get(key) instanceof JSONArray )
+                    {
+                    JSONArray testArray = testMainObject.getJSONArray(key);
+                    resultantContact = new JSONObject();
+    
+                    //TODO: add TestUtilitites.removeDatesAndEncryptedFields(o) ;
+                    
+                    JSONObject externalContact = testArray.getJSONObject(0).getJSONObject("primaryContact");
+                    JSONObject expectedOutcome = testArray.getJSONObject(1);
+                    dataMethod.invoke(null, externalContact, resultantContact);
+                    //NeonCRMUtil.addName(externalContact, resultantContact);
+                  
+    System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.toString()+"\nACTUAL:\n"+resultantContact.toString());
+                    JSONAssert.assertEquals(expectedOutcome, TestUtilities.removeDatesAndEncryptedFields(resultantContact));
+                    }
+                }
+            }
+        }
+    
     
     }

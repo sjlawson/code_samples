@@ -1,53 +1,13 @@
-/*******************************************************************************
- * Copyright (c) 2013, Bashpole Software, Inc.
- * All rights reserved.
- ******************************************************************************/
-package com.bashpole.updentity.utility;
-
-import static org.junit.Assert.*;
-
-import java.io.IOException;
-import java.util.Iterator;
-
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
-import net.sf.json.test.JSONAssert;
-
-import org.junit.Ignore;
-import org.junit.Test;
-
-import com.bashpole.updentity.exporter.BatchbookContactsExporter;
-import com.bashpole.updentity.model.ContactKeys;
-import com.bashpole.updentity.testutilities.TestUtilities;
+// Imports removed to protect proprietary code
 
 /**
- * @author Mitesh
+ * @author Samuel Lawson
  * 
  */
 public class NeonCRMUtilTest
     {
     private static final String DEFAULT_MOCKDATA_PATH = "/home/samuel/workspace/updentity_rest_sjl/src/Test/java/com/bashpole/updentity/testutilities/resources/data";
 
-    
-    /**
-     * Test method for {@link NeonCRMUtil#convertToUpdentity(JSONObject)}
-     */
-    @Ignore
-    @Test
-    public final void testConvertToUpdentity()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#convertToNeon(JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testConvertToNeon()
-        {
-        fail("Not yet implemented"); // TODO
-        }
     
     /**
      *  Test method for {@link NoenCRMUtil#addName(final JSONObject primaryContactObject, JSONObject convertedContact )}.
@@ -177,64 +137,6 @@ System.out.println("At key:"+ key +" | Asserting, expected:\n"+expectedOutcome.t
             }
         }
     
-    /**
-     * Test method for {@link NeonCRMUtil#mergeContacts(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergeContacts()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#mergeEmails(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergeEmails()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#mergePhones(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergePhones()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#mergeAddresses(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergeAddresses()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#mergeWorkProfiles(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergeWorkProfiles()
-        {
-        fail("Not yet implemented"); // TODO
-        }
-    
-    /**
-     * Test method for {@link NeonCRMUtil#mergeEducation(JSONObject, JSONObject, JSONObject)}.
-     */
-    @Ignore
-    @Test
-    public final void testMergeEducation()
-        {
-        fail("Not yet implemented"); // TODO
-        }
+
     
     }
