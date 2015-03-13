@@ -1,0 +1,788 @@
+From 72e43c1452ebfffcef7a1e2dc71113abe05fd219 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Wed, 7 Jan 2015 15:04:26 -0500
+Subject: [PATCH 1/9] Modified composer.json
+
+---
+ composer.json |   51 ++++++++++++++++++++++++++-------------------------
+ 1 file changed, 26 insertions(+), 25 deletions(-)
+
+diff --git a/composer.json b/composer.json
+index a0e1fe7..3735ebd 100644
+--- a/composer.json
++++ b/composer.json
+@@ -1,27 +1,28 @@
+ {
+-	"name": "tracy/tracy",
+-	"description": "Tracy: useful PHP debugger",
+-	"keywords": ["debug", "debugger", "nette"],
+-	"homepage": "http://tracy.nette.org",
+-	"license": ["BSD-3-Clause", "GPL-2.0", "GPL-3.0"],
+-	"authors": [
+-		{
+-			"name": "David Grudl",
+-			"homepage": "http://davidgrudl.com"
+-		},
+-		{
+-			"name": "Nette Community",
+-			"homepage": "http://nette.org/contributors"
+-		}
+-	],
+-	"require": {
+-		"php": ">=5.3.1"
+-	},
+-	"require-dev": {
+-		"nette/tester": "~1.0"
+-	},
+-	"autoload": {
+-		"classmap": ["src/Tracy"],
+-		"files": ["src/shortcuts.php"]
+-	}
++    "name": "mhc/tracy",
++    "description": "MHC port of Tracy, a useful PHP debugger, for use in our Drupal 7 modules.",
++    "keywords": ["debug", "debugger"],
++    "homepage": "http://tracy.nette.org",
++    "license": ["BSD-3-Clause", "GPL-2.0", "GPL-3.0"],
++    "authors": [
++        {
++            "name": "David Grudl",
++            "homepage": "http://davidgrudl.com"
++        },
++        {
++            "name": "Nette Community",
++            "homepage": "http://nette.org/contributors"
++        },
++        {
++            "name": "Kevin Weber",
++            "email": "kweber@mooreheadcomm.com"
++        }
++    ],
++    "require": {
++        "php": ">=5.3.1"
++    },
++    "autoload": {
++        "classmap": ["src/Tracy"],
++        "files": ["src/shortcuts.php"]
++    }
+ }
+-- 
+1.7.9.5
+
+
+From 4bed0733ec10609b625a40f909b297b52f6a1014 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Wed, 7 Jan 2015 15:33:45 -0500
+Subject: [PATCH 2/9] Modifications
+
+---
+ src/Tracy/Bar.php      |    5 ++++-
+ src/Tracy/Debugger.php |    4 ++++
+ src/Tracy/Logger.php   |   10 ++++++++--
+ 3 files changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/src/Tracy/Bar.php b/src/Tracy/Bar.php
+index 6e3e6b1..710099c 100644
+--- a/src/Tracy/Bar.php
++++ b/src/Tracy/Bar.php
+@@ -86,7 +86,9 @@ class Bar
+ 			}
+ 		}
+ 
+-		@session_start();
++                // Conflicts with Drupal's session handler.
++		/*
++                @session_start();
+ 		$session = & $_SESSION['__NF']['debuggerbar'];
+ 		if (preg_match('#^Location:#im', implode("\n", headers_list()))) {
+ 			$session[] = $panels;
+@@ -105,6 +107,7 @@ class Bar
+ 			}
+ 		}
+ 		$session = NULL;
++                */
+ 
+ 		$info = array_filter($this->info);
+ 		require __DIR__ . '/templates/bar.phtml';
+diff --git a/src/Tracy/Debugger.php b/src/Tracy/Debugger.php
+index 324179d..8b966e5 100644
+--- a/src/Tracy/Debugger.php
++++ b/src/Tracy/Debugger.php
+@@ -22,6 +22,9 @@ use Tracy,
+  */
+ class Debugger
+ {
++        /** @var string */
++        public static $moduleName = '<Module name not set>';
++
+ 	/** @var string */
+ 	public static $version = '2.2.6';
+ 
+@@ -274,6 +277,7 @@ class Debugger
+ 			self::$logger->email = & self::$email;
+ 			self::$logger->mailer = & self::$mailer;
+ 			self::$logger->emailSnooze = & self::$emailSnooze;
++                        self::$logger->moduleName = & self::$moduleName;
+ 		}
+ 		return self::$logger;
+ 	}
+diff --git a/src/Tracy/Logger.php b/src/Tracy/Logger.php
+index 14901cd..00f5511 100644
+--- a/src/Tracy/Logger.php
++++ b/src/Tracy/Logger.php
+@@ -24,6 +24,9 @@ class Logger
+ 		EXCEPTION = 'exception',
+ 		CRITICAL = 'critical';
+ 
++        /** @var string */
++        public $moduleName = '<Module name not set>';
++
+ 	/** @var int interval for sending email is 2 days */
+ 	public $emailSnooze = 172800;
+ 
+@@ -58,11 +61,14 @@ class Logger
+ 			throw new \RuntimeException("Unable to write to log file '$file'. Is directory writable?");
+ 		}
+ 
+-		if (in_array($priority, array(self::ERROR, self::EXCEPTION, self::CRITICAL), TRUE)
++		if (in_array($priority, array(self::ERROR, self::EXCEPTION, self::CRITICAL), TRUE)) {
++                        // Always send email.
++                        /*
+ 			&& $this->email && $this->mailer
+ 			&& @filemtime($this->directory . '/email-sent') + $this->emailSnooze < time() // @ - file may not exist
+ 			&& @file_put_contents($this->directory . '/email-sent', 'sent') // @ - file may not be writable
+ 		) {
++                        */
+ 			call_user_func($this->mailer, $message, implode(', ', (array) $this->email));
+ 		}
+ 	}
+@@ -88,7 +94,7 @@ class Logger
+ 					'Content-Type: text/plain; charset=UTF-8',
+ 					'Content-Transfer-Encoding: 8bit',
+ 				)) . "\n",
+-				'subject' => "PHP: An error occurred on the server $host",
++				'subject' => $this->moduleName . ": An error occurred on the server \"$host\"",
+ 				'body' => "[" . @date('Y-m-d H:i:s') . "] $message", // @ - timezone may not be set
+ 			)
+ 		);
+-- 
+1.7.9.5
+
+
+From 695ae89dc3b38983321f817f53309ebe60a2acd4 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Wed, 7 Jan 2015 16:44:59 -0500
+Subject: [PATCH 3/9] Changes.
+
+---
+ src/Tracy/Debugger.php |    6 +++---
+ src/Tracy/Logger.php   |    5 +++++
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/src/Tracy/Debugger.php b/src/Tracy/Debugger.php
+index 8b966e5..2873986 100644
+--- a/src/Tracy/Debugger.php
++++ b/src/Tracy/Debugger.php
+@@ -46,10 +46,10 @@ class Debugger
+ 	/********************* Debugger::dump() ****************d*g**/
+ 
+ 	/** @var int  how many nested levels of array/object properties display {@link Debugger::dump()} */
+-	public static $maxDepth = 3;
++	public static $maxDepth = 10;
+ 
+ 	/** @var int  how long strings display {@link Debugger::dump()} */
+-	public static $maxLen = 150;
++	public static $maxLen = 10000;
+ 
+ 	/** @var bool display location? {@link Debugger::dump()} */
+ 	public static $showLocation = FALSE;
+@@ -417,7 +417,7 @@ class Debugger
+ 
+ 			if (self::isHtmlMode()) {
+ 				$logged = empty($e);
+-				require __DIR__ . '/templates/error.phtml';
++				//require __DIR__ . '/templates/error.phtml';
+ 			} elseif (PHP_SAPI === 'cli') {
+ 				fwrite(STDERR, 'ERROR: application encountered an error and can not continue. '
+ 					. (isset($e) ? "Unable to log error.\n" : "Error was logged.\n"));
+diff --git a/src/Tracy/Logger.php b/src/Tracy/Logger.php
+index 00f5511..75c9b4f 100644
+--- a/src/Tracy/Logger.php
++++ b/src/Tracy/Logger.php
+@@ -48,18 +48,23 @@ class Logger
+ 	 */
+ 	public function log($message, $priority = NULL)
+ 	{
++                /*
+ 		if (!is_dir($this->directory)) {
+ 			throw new \RuntimeException("Directory '$this->directory' is not found or is not directory.");
+ 		}
++                */
+ 
+ 		if (is_array($message)) {
+ 			$message = implode(' ', $message);
+ 		}
+ 		$message = preg_replace('#\s*\r?\n\s*#', ' ', trim($message));
++
++                /*
+ 		$file = $this->directory . '/' . strtolower($priority ?: self::INFO) . '.log';
+ 		if (!@file_put_contents($file, $message . PHP_EOL, FILE_APPEND | LOCK_EX)) {
+ 			throw new \RuntimeException("Unable to write to log file '$file'. Is directory writable?");
+ 		}
++                */
+ 
+ 		if (in_array($priority, array(self::ERROR, self::EXCEPTION, self::CRITICAL), TRUE)) {
+                         // Always send email.
+-- 
+1.7.9.5
+
+
+From 76972b8b2c983d8c7b71c18c1f4b9c8359f5a692 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Mon, 12 Jan 2015 14:10:06 -0500
+Subject: [PATCH 4/9] More MHC-specific functionality.
+
+---
+ src/Tracy/Debugger.php          |   94 ++++++++++++++++-----------------------
+ src/Tracy/Logger.php            |   81 ++++++++++++++-------------------
+ src/Tracy/templates/error.phtml |   33 ++------------
+ 3 files changed, 77 insertions(+), 131 deletions(-)
+
+diff --git a/src/Tracy/Debugger.php b/src/Tracy/Debugger.php
+index 2873986..eecc86d 100644
+--- a/src/Tracy/Debugger.php
++++ b/src/Tracy/Debugger.php
+@@ -22,8 +22,8 @@ use Tracy,
+  */
+ class Debugger
+ {
+-        /** @var string */
+-        public static $moduleName = '<Module name not set>';
++    /** @var string */
++    public static $moduleName = '<Module name not set>';
+ 
+ 	/** @var string */
+ 	public static $version = '2.2.6';
+@@ -144,6 +144,32 @@ class Debugger
+ 	}
+ 
+ 
++    public static function mhcEnable($devMode, $moduleName, $emailAddress)
++    {
++        if (is_string($devMode)) {
++            $devMode = strtolower(trim($devMode));
++            switch ($devMode) {
++            case 'dev':
++            case 'development':
++            case 'staging':
++            case 'testing':
++            case 'true':
++                $devMode = true;
++
++            default:
++                $devMode = false;
++            }
++        }
++
++        $dev = self::PRODUCTION;
++        if ($devMode) {
++            $dev = self::DEVELOPMENT;
++        }
++
++        self::enable($dev, false, $emailAddress);
++        self::$moduleName = $moduleName;
++    }
++    
+ 	/**
+ 	 * Enables displaying or logging errors and exceptions.
+ 	 * @param  mixed         production, development mode, autodetection or IP address(es) whitelist.
+@@ -151,7 +177,7 @@ class Debugger
+ 	 * @param  string        administrator email; enables email sending in production mode
+ 	 * @return void
+ 	 */
+-	public static function enable($mode = NULL, $logDirectory = NULL, $email = NULL)
++	protected static function enable($mode = NULL, $logDirectory = NULL, $email = NULL)
+ 	{
+ 		self::$time = isset($_SERVER['REQUEST_TIME_FLOAT']) ? $_SERVER['REQUEST_TIME_FLOAT'] : microtime(TRUE);
+ 		if (isset($_SERVER['REQUEST_URI'])) {
+@@ -277,7 +303,6 @@ class Debugger
+ 			self::$logger->email = & self::$email;
+ 			self::$logger->mailer = & self::$mailer;
+ 			self::$logger->emailSnooze = & self::$emailSnooze;
+-                        self::$logger->moduleName = & self::$moduleName;
+ 		}
+ 		return self::$logger;
+ 	}
+@@ -313,56 +338,15 @@ class Debugger
+ 	 */
+ 	public static function log($message, $priority = self::INFO)
+ 	{
+-		if (!self::$logDirectory) {
+-			return;
+-		}
+-
+-		$exceptionFilename = NULL;
+-		if ($message instanceof \Exception) {
+-			$exception = $message;
+-			while ($exception) {
+-				$tmp[] = ($exception instanceof ErrorException
+-					? 'Fatal error: ' . $exception->getMessage()
+-					: get_class($exception) . ': ' . $exception->getMessage())
+-					. ' in ' . $exception->getFile() . ':' . $exception->getLine();
+-				$exception = $exception->getPrevious();
+-			}
+-			$exception = $message;
+-			$message = implode($tmp, "\ncaused by ");
+-
+-			$hash = md5(preg_replace('~(Resource id #)\d+~', '$1', $exception));
+-			$exceptionFilename = 'exception-' . @date('Y-m-d-H-i-s') . "-$hash.html";
+-			foreach (new \DirectoryIterator(self::$logDirectory) as $entry) {
+-				if (strpos($entry, $hash)) {
+-					$exceptionFilename = $entry;
+-					$saved = TRUE;
+-					break;
+-				}
+-			}
+-		} elseif (!is_string($message)) {
+-			$message = Dumper::toText($message);
+-		}
+-
+-		if ($exceptionFilename) {
+-			$exceptionFilename = self::$logDirectory . '/' . $exceptionFilename;
+-			if (empty($saved) && $logHandle = @fopen($exceptionFilename, 'w')) {
+-				ob_start(); // double buffer prevents sending HTTP headers in some PHP
+-				ob_start(function($buffer) use ($logHandle) { fwrite($logHandle, $buffer); }, 4096);
+-				self::getBlueScreen()->render($exception);
+-				ob_end_flush();
+-				ob_end_clean();
+-				fclose($logHandle);
+-			}
+-		}
+-
+-		self::getLogger()->log(array(
+-			@date('[Y-m-d H-i-s]'),
+-			trim($message),
+-			self::$source ? ' @  ' . self::$source : NULL,
+-			$exceptionFilename ? ' @@  ' . basename($exceptionFilename) : NULL
+-		), $priority);
+-
+-		return $exceptionFilename ? strtr($exceptionFilename, '\\/', DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR) : NULL;
++        // Send REAL error message.
++        ob_start();
++        self::getBlueScreen()->render($exception);
++        $message = ob_get_clean();
++        
++		self::getLogger()->log(
++            $message,
++            $priority
++        );
+ 	}
+ 
+ 
+@@ -417,7 +401,7 @@ class Debugger
+ 
+ 			if (self::isHtmlMode()) {
+ 				$logged = empty($e);
+-				//require __DIR__ . '/templates/error.phtml';
++				require __DIR__ . '/templates/error.phtml';
+ 			} elseif (PHP_SAPI === 'cli') {
+ 				fwrite(STDERR, 'ERROR: application encountered an error and can not continue. '
+ 					. (isset($e) ? "Unable to log error.\n" : "Error was logged.\n"));
+diff --git a/src/Tracy/Logger.php b/src/Tracy/Logger.php
+index 75c9b4f..885d5ba 100644
+--- a/src/Tracy/Logger.php
++++ b/src/Tracy/Logger.php
+@@ -24,9 +24,6 @@ class Logger
+ 		EXCEPTION = 'exception',
+ 		CRITICAL = 'critical';
+ 
+-        /** @var string */
+-        public $moduleName = '<Module name not set>';
+-
+ 	/** @var int interval for sending email is 2 days */
+ 	public $emailSnooze = 172800;
+ 
+@@ -48,37 +45,20 @@ class Logger
+ 	 */
+ 	public function log($message, $priority = NULL)
+ 	{
+-                /*
+-		if (!is_dir($this->directory)) {
+-			throw new \RuntimeException("Directory '$this->directory' is not found or is not directory.");
+-		}
+-                */
+-
+ 		if (is_array($message)) {
+ 			$message = implode(' ', $message);
+ 		}
+-		$message = preg_replace('#\s*\r?\n\s*#', ' ', trim($message));
+-
+-                /*
+-		$file = $this->directory . '/' . strtolower($priority ?: self::INFO) . '.log';
+-		if (!@file_put_contents($file, $message . PHP_EOL, FILE_APPEND | LOCK_EX)) {
+-			throw new \RuntimeException("Unable to write to log file '$file'. Is directory writable?");
+-		}
+-                */
+ 
+-		if (in_array($priority, array(self::ERROR, self::EXCEPTION, self::CRITICAL), TRUE)) {
+-                        // Always send email.
+-                        /*
+-			&& $this->email && $this->mailer
+-			&& @filemtime($this->directory . '/email-sent') + $this->emailSnooze < time() // @ - file may not exist
+-			&& @file_put_contents($this->directory . '/email-sent', 'sent') // @ - file may not be writable
+-		) {
+-                        */
+-			call_user_func($this->mailer, $message, implode(', ', (array) $this->email));
++		$willSendEmailPriorities = array(self::ERROR, self::EXCEPTION, self::CRITICAL);		
++		if (in_array($priority, $willSendEmailPriorities, true)) {
++			call_user_func(
++				$this->mailer,
++				$message,
++				implode(', ', (array) $this->email)
++			);
+ 		}
+ 	}
+ 
+-
+ 	/**
+ 	 * Default mailer.
+ 	 * @param  string
+@@ -86,25 +66,32 @@ class Logger
+ 	 * @return void
+ 	 * @internal
+ 	 */
+-	public static function defaultMailer($message, $email)
++    public static function defaultMailer($message, $email)
++    {
++        $host = preg_replace('#[^\w.-]+#', '', isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : php_uname('n'));
++
++        mail(
++            $email,
++            Debugger::$moduleName . ": An error occurred on the server \"$host\"",
++            $message,
++            implode(PHP_EOL, self::getEmailHeaders())
++        );
++    }
++
++    /**
++     * Get the headers for emails.
++     *
++     * @param string $handler This is the handler that the email was sent from.
++     * @return array Array of headers
++     */
++    static private function getEmailHeaders()
+ 	{
+-		$host = preg_replace('#[^\w.-]+#', '', isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : php_uname('n'));
+-		$parts = str_replace(
+-			array("\r\n", "\n"),
+-			array("\n", PHP_EOL),
+-			array(
+-				'headers' => implode("\n", array(
+-					"From: noreply@$host",
+-					'X-Mailer: Tracy',
+-					'Content-Type: text/plain; charset=UTF-8',
+-					'Content-Transfer-Encoding: 8bit',
+-				)) . "\n",
+-				'subject' => $this->moduleName . ": An error occurred on the server \"$host\"",
+-				'body' => "[" . @date('Y-m-d H:i:s') . "] $message", // @ - timezone may not be set
+-			)
+-		);
+-
+-		mail($email, $parts['subject'], $parts['body'], $parts['headers']);
+-	}
+-
++        return array(
++			'From: ' . Debugger::$moduleName . ' <www-data@mooreheadcomm.com>',
++			'Date: ' . date('D, j M Y H:i:s O'),
++			'MIME-Version: 1.0',
++			'X-Mailer: PHP/' . phpversion(),
++			'Content-Type: text/html; charset=ISO-8859-1'
++        );
++    }	
+ }
+diff --git a/src/Tracy/templates/error.phtml b/src/Tracy/templates/error.phtml
+index 6f6aab3..ccf50e5 100644
+--- a/src/Tracy/templates/error.phtml
++++ b/src/Tracy/templates/error.phtml
+@@ -1,31 +1,6 @@
+ <?php
+ 
+-/**
+- * Default error page.
+- * @param  bool $logged
+- */
+-
+-namespace Tracy;
+-
+-?>
+-<!DOCTYPE html><!-- "' --></script></style></noscript></xmp>
+-<meta charset="utf-8">
+-<meta name=robots content=noindex>
+-<meta name=generator content="Tracy">
+-<title>Server Error</title>
+-
+-<style>
+-	#tracy-error { background: white; width: 500px; margin: 70px auto; padding: 10px 20px }
+-	#tracy-error h1 { font: bold 47px/1.5 sans-serif; background: none; color: #333; margin: .6em 0 }
+-	#tracy-error p { font: 21px/1.5 Georgia,serif; background: none; color: #333; margin: 1.5em 0 }
+-	#tracy-error small { font-size: 70%; color: gray }
+-</style>
+-
+-<div id=tracy-error>
+-	<h1>Server Error</h1>
+-
+-	<p>We're sorry! The server encountered an internal error and
+-	was unable to complete your request. Please try again later.</p>
+-
+-	<p><small>error 500<?php if (!$logged): ?><br>Tracy is unable to log error.<?php endif ?></small></p>
+-</div>
++drupal_maintenance_theme();
++$userErrorMessage = t('There was an unxepected error; IT has been notified. ') . l('Please try again.', 'home');
++drupal_set_message($userErrorMessage, 'error');
++echo theme('maintenance_page');
+-- 
+1.7.9.5
+
+
+From 22f27748869400eda4db190ece9d378b97ff833e Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Mon, 12 Jan 2015 14:47:30 -0500
+Subject: [PATCH 5/9] Added drupal user to output.
+
+---
+ src/Tracy/Dumper.php                 |    4 ++--
+ src/Tracy/templates/bluescreen.phtml |   12 +++++++++++-
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/src/Tracy/Dumper.php b/src/Tracy/Dumper.php
+index fbf00eb..18ade2e 100644
+--- a/src/Tracy/Dumper.php
++++ b/src/Tracy/Dumper.php
+@@ -69,8 +69,8 @@ class Dumper
+ 	public static function toHtml($var, array $options = NULL)
+ 	{
+ 		$options = (array) $options + array(
+-			self::DEPTH => 4,
+-			self::TRUNCATE => 150,
++			self::DEPTH => 10,
++			self::TRUNCATE => 10000,
+ 			self::COLLAPSE => FALSE,
+ 			self::COLLAPSE_COUNT => 7,
+ 			self::LOCATION => FALSE,
+diff --git a/src/Tracy/templates/bluescreen.phtml b/src/Tracy/templates/bluescreen.phtml
+index fb93af3..98e3420 100644
+--- a/src/Tracy/templates/bluescreen.phtml
++++ b/src/Tracy/templates/bluescreen.phtml
+@@ -199,6 +199,16 @@ $counter = 0;
+ 		<h2><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle tracy-collapsed">Environment</a></h2>
+ 
+ 		<div id="tracyBsPnl<?php echo $counter ?>" class="tracy-collapsed inner">
++			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle">Drupal User</a></h3>
++			<div id="tracyBsPnl<?php echo $counter ?>" class="outer">
++			<table><tr><td>
++			<?php
++			global $user;														 
++            Dumper::toHtml($user);
++			?>
++			</td></tr></table>
++			</div>
++														 
+ 			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle">$_SERVER</a></h3>
+ 			<div id="tracyBsPnl<?php echo $counter ?>" class="outer">
+ 			<table>
+@@ -266,7 +276,7 @@ $counter = 0;
+ 
+ 			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle tracy-collapsed">Configuration options</a></h3>
+ 			<div id="tracyBsPnl<?php echo $counter ?>" class="outer tracy-collapsed">
+-			<?php ob_start(); @phpinfo(INFO_CONFIGURATION | INFO_MODULES); echo preg_replace('#^.+<body>|</body>.+\z#s', '', ob_get_clean()) ?>
++			<?php ob_start(); @phpinfo(INFO_CONFIGURATION); echo preg_replace('#^.+<body>|</body>.+\z#s', '', ob_get_clean()) ?>
+ 			</div>
+ 		</div></div>
+ 
+-- 
+1.7.9.5
+
+
+From bd90b79955c633033072edda9b4210757818fbe3 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Tue, 13 Jan 2015 09:14:58 -0500
+Subject: [PATCH 6/9] Minor improvements.
+
+---
+ src/Tracy/templates/bluescreen.phtml |   31 +------------------------------
+ 1 file changed, 1 insertion(+), 30 deletions(-)
+
+diff --git a/src/Tracy/templates/bluescreen.phtml b/src/Tracy/templates/bluescreen.phtml
+index 98e3420..16950d5 100644
+--- a/src/Tracy/templates/bluescreen.phtml
++++ b/src/Tracy/templates/bluescreen.phtml
+@@ -47,7 +47,7 @@ $counter = 0;
+ 		<div id="tracyBluescreenError" class="panel">
+ 			<h1><?php echo htmlspecialchars($title), ($exception->getCode() ? ' #' . $exception->getCode() : '') ?></h1>
+ 
+-			<p><?php echo htmlspecialchars($exception->getMessage(), ENT_IGNORE) ?> <a href="https://www.google.com/search?sourceid=tracy&amp;q=<?php echo urlencode($title . ' ' . preg_replace('#\'.*\'|".*"#Us', '', $exception->getMessage())) ?>" id="tracyBsSearch" rel="noreferrer">search&#x25ba;</a></p>
++			<p><?php echo htmlspecialchars($exception->getMessage(), ENT_IGNORE) ?> <a href="https://www.google.com/search?q=<?php echo urlencode($title . ' ' . preg_replace('#\'.*\'|".*"#Us', '', $exception->getMessage())) ?>" id="tracyBsSearch" rel="noreferrer">search&#x25ba;</a></p>
+ 		</div>
+ 
+ 		<?php if ($prev = $exception->getPrevious()): ?>
+@@ -245,35 +245,6 @@ $counter = 0;
+ 			<?php endif ?>
+ 
+ 
+-			<?php
+-			$list = get_defined_constants(TRUE);
+-			if (!empty($list['user'])):?>
+-			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle tracy-collapsed">Constants</a></h3>
+-			<div id="tracyBsPnl<?php echo $counter ?>" class="outer tracy-collapsed">
+-			<table>
+-			<?php
+-			foreach ($list['user'] as $k => $v) {
+-				echo '<tr><th>', htmlspecialchars($k), '</th>';
+-				echo '<td>', Dumper::toHtml($v), "</td></tr>\n";
+-			}
+-			?>
+-			</table>
+-			</div>
+-			<?php endif ?>
+-
+-
+-			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle tracy-collapsed">Included files</a> (<?php echo count(get_included_files()) ?>)</h3>
+-			<div id="tracyBsPnl<?php echo $counter ?>" class="outer tracy-collapsed">
+-			<table>
+-			<?php
+-			foreach (get_included_files() as $v) {
+-				echo '<tr><td>', htmlspecialchars($v, ENT_IGNORE), "</td></tr>\n";
+-			}
+-			?>
+-			</table>
+-			</div>
+-
+-
+ 			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle tracy-collapsed">Configuration options</a></h3>
+ 			<div id="tracyBsPnl<?php echo $counter ?>" class="outer tracy-collapsed">
+ 			<?php ob_start(); @phpinfo(INFO_CONFIGURATION); echo preg_replace('#^.+<body>|</body>.+\z#s', '', ob_get_clean()) ?>
+-- 
+1.7.9.5
+
+
+From e616ca4dc92a05394e5842e8fe4e8f99f63de93a Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Tue, 13 Jan 2015 10:13:14 -0500
+Subject: [PATCH 7/9] Minor fixes.
+
+---
+ src/Tracy/Debugger.php |    8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/Tracy/Debugger.php b/src/Tracy/Debugger.php
+index eecc86d..e10204b 100644
+--- a/src/Tracy/Debugger.php
++++ b/src/Tracy/Debugger.php
+@@ -155,9 +155,11 @@ class Debugger
+             case 'testing':
+             case 'true':
+                 $devMode = true;
++                break;
+ 
+             default:
+                 $devMode = false;
++                break;
+             }
+         }
+ 
+@@ -340,11 +342,11 @@ class Debugger
+ 	{
+         // Send REAL error message.
+         ob_start();
+-        self::getBlueScreen()->render($exception);
+-        $message = ob_get_clean();
++        self::getBlueScreen()->render($message);
++        $htmlMessage = ob_get_clean();
+         
+ 		self::getLogger()->log(
+-            $message,
++            $htmlMessage,
+             $priority
+         );
+ 	}
+-- 
+1.7.9.5
+
+
+From 78b138add3875f342bc902a4d5561097abe73715 Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Tue, 13 Jan 2015 12:11:25 -0500
+Subject: [PATCH 8/9] Added drupal user data.
+
+---
+ src/Tracy/Debugger.php               |    5 +++++
+ src/Tracy/templates/bluescreen.phtml |    5 +----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/Tracy/Debugger.php b/src/Tracy/Debugger.php
+index e10204b..a229d3e 100644
+--- a/src/Tracy/Debugger.php
++++ b/src/Tracy/Debugger.php
+@@ -134,6 +134,8 @@ class Debugger
+ 	/** @var Bar */
+ 	private static $bar;
+ 
++    /** @var Drupal User object */
++    public static $drupalUser;
+ 
+ 	/**
+ 	 * Static class - cannot be instantiated.
+@@ -170,6 +172,9 @@ class Debugger
+ 
+         self::enable($dev, false, $emailAddress);
+         self::$moduleName = $moduleName;
++
++        global $user;
++        self::$drupalUser = clone $user;
+     }
+     
+ 	/**
+diff --git a/src/Tracy/templates/bluescreen.phtml b/src/Tracy/templates/bluescreen.phtml
+index 16950d5..5c228a0 100644
+--- a/src/Tracy/templates/bluescreen.phtml
++++ b/src/Tracy/templates/bluescreen.phtml
+@@ -202,10 +202,7 @@ $counter = 0;
+ 			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle">Drupal User</a></h3>
+ 			<div id="tracyBsPnl<?php echo $counter ?>" class="outer">
+ 			<table><tr><td>
+-			<?php
+-			global $user;														 
+-            Dumper::toHtml($user);
+-			?>
++			<?php Dumper::toHtml(Debugger::$drupalUser); ?>
+ 			</td></tr></table>
+ 			</div>
+ 														 
+-- 
+1.7.9.5
+
+
+From f5f00bc2e5d11c779fa3137e5ff7120ba9a3b90e Mon Sep 17 00:00:00 2001
+From: Kevin Weber <kweber@mooreheadcomm.com>
+Date: Tue, 13 Jan 2015 12:24:27 -0500
+Subject: [PATCH 9/9] Fixed for drupal user.
+
+---
+ src/Tracy/templates/bluescreen.phtml |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/Tracy/templates/bluescreen.phtml b/src/Tracy/templates/bluescreen.phtml
+index 5c228a0..fd39046 100644
+--- a/src/Tracy/templates/bluescreen.phtml
++++ b/src/Tracy/templates/bluescreen.phtml
+@@ -202,7 +202,7 @@ $counter = 0;
+ 			<h3><a href="#tracyBsPnl<?php echo ++$counter ?>" class="tracy-toggle">Drupal User</a></h3>
+ 			<div id="tracyBsPnl<?php echo $counter ?>" class="outer">
+ 			<table><tr><td>
+-			<?php Dumper::toHtml(Debugger::$drupalUser); ?>
++			<?php echo Dumper::toHtml(Debugger::$drupalUser); ?>
+ 			</td></tr></table>
+ 			</div>
+ 														 
+-- 
+1.7.9.5
+

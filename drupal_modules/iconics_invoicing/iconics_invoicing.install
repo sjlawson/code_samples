@@ -1,0 +1,162 @@
+<?php
+/**
+ * Installation hooks for "Iconics Invoicing"
+ *
+ * @file
+ * @date 2014-12-15
+ * @author Samuel Lawson <slawson@mooreheadcomm.com>
+ */
+
+namespace IconicsInvoicing {
+
+    /**
+     * Will create a menu link.
+     *
+     * Reference:
+     * https://api.drupal.org/api/drupal/includes!menu.inc/function/menu_link_save/7
+     *
+     * @param string $title
+     * @param string $path
+     * @param string $menuName
+     * @param array  $optional
+     */
+    function create_menu_link($title, $path, $menuName = 'main', $optional = array())
+    {
+        $menuItem = array(
+            'link_path' => drupal_get_normal_path($path),
+            'link_title' => $title,
+            'menu_name' => $menuName,
+            'router_path' => $path
+        );
+        $fullMenuItem = array_merge($menuItem, $optional);
+
+        return menu_link_save($fullMenuItem);
+    }
+
+    /**
+     * Will find the 'mlid' given a path.
+     *
+     * @param string $path
+     * @param string $menuName
+     *
+     * @return false|int False if mlid not found, otherwise the 'mlid'.
+     */
+    function get_mlid_for_path($path, $menuName = 'main')
+    {
+        $mlid = false;
+        $tree =  menu_tree_all_data($menuName);
+        foreach ($tree as $item) {
+            if ($item['link']['link_path'] == $path) {
+                $mlid = $item['link']['mlid'];
+                break;
+            }
+        }
+
+        return $mlid;
+    }
+
+    /**
+     * Will remove a menu link.
+     *
+     * @param string $path
+     * @param string $menuName
+     *
+     * @return int  Will return the number of menu links removed.
+     */
+    function remove_menu_link($path, $menuName = 'main')
+    {
+        $mlid = get_mlid_for_path($path, $menuName);
+        if ($mlid === false) {
+            return 0;
+        }
+
+        menu_link_delete($mlid);
+
+        return 1;
+    }
+}
+
+namespace {
+
+    /**
+     * hook_enable
+     *
+     * This hook is called each time this module is enabled.
+     * Typical uses include:
+     *     1) Granting permissions to specific roles.
+     *     2) Adding menu items.
+     */
+    function iconics_invoicing_enable()
+    {
+        // Add permissions for this module.
+        $godModeRoleObj = user_role_load_by_name('God Mode');
+        $newPermissions = array(
+            //@ New permissions are appended here.
+        );
+
+        user_role_grant_permissions($godModeRoleObj->rid, $newPermissions);
+
+        //@ Add menu links for this module.
+
+        menu_cache_clear_all();
+
+        drupal_set_message('Iconics Invoicing - enable completed successfully.');
+    }
+
+    /**
+     * hook_disable
+     *
+     * This hook is called each time this module is disabled.
+     */
+    function iconics_invoicing_disable()
+    {
+        // Remove all menu items associated with this module.
+        $menuPaths = array(
+            //@ Menu paths are appended here.
+        );
+
+        $menuItemsRemovedCount = 0;
+        foreach ($menuPaths as $path) {
+            $menuItemsRemovedCount += \remove_menu_link($path);
+        }
+
+        menu_cache_clear_all();
+        drupal_set_message('Iconics Invoicing: ' . $menuItemsRemovedCount .
+                           ' menu links removed.');
+
+        // Remove permissions associated with this module.
+        $godModeRoleObj = user_role_load_by_name('God Mode');
+        $permissionsRevoked = array(
+            //@ Permissions to revoke are appended here.
+        );
+
+        user_role_revoke_permissions($godModeRoleObj->rid, $permissionsRevoked);
+
+        drupal_set_message('Iconics Invoicing - disable completed successfully.');
+    }
+
+    /**
+     * hook_install
+     *
+     * This hook is called only once the first time this module is enabled,
+     * and is called right before hook_enable(). Note: the .module file is
+     * not available at this point.
+     *
+     * Typically, database schema changes go here.
+     */
+    function iconics_invoicing_install()
+    {
+        drupal_set_message('Iconics Invoicing - install completed successfully.');
+    }
+
+    /**
+     * hook_uninstall
+     *
+     * This hook is called after the module has already been disabled, so the
+     * .module file is not available.
+     */
+    function iconics_invoicing_uninstall()
+    {
+        drupal_set_message('Iconics Invoicing - uninstall completed successfully.');
+    }
+}

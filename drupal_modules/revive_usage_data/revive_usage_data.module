@@ -1,0 +1,303 @@
+<?php
+/**
+ * Module to filter, view, and export Revive usage data
+ *
+ * @file
+ * @date 2014-05-06
+ * @author Samuel Lawson <slawson@mooreheadcomm.com>
+ */
+
+namespace ReviveUsageData {
+
+    /**
+     * Will build the block content function name and call it.
+     *
+     * @param string $blockName
+     *
+     * @return array
+     */
+    function get_block_content($blockName)
+    {
+        require_once('includes/blocks/' . $blockName . '.php');
+        return call_user_func(__NAMESPACE__ . '\\_' . $blockName);
+    }
+
+    /**
+     * Gets the name of the module
+     *
+     * @return string Name of the module
+     */
+    function get_module_name()
+    {
+        return basename(__FILE__, '.module');
+    }
+
+    /**
+     * Gets the path of the module
+     *
+     * @return string Path relative to DRUPAL_ROOT.
+     */
+    function get_module_path()
+    {
+        // Must be relative to be used with Drupal functions
+        return drupal_get_path('module', get_module_name());
+    }
+
+    /**
+     * Gets the standardized name for the page callback
+     *
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_name($pageCallback)
+    {
+        return __NAMESPACE__ . '\\' . $pageCallback;
+    }
+
+    /**
+     * Gets the standardized name for the page callback filename
+     *
+     * @param string $directory Relative path to the module path without leading or trailing slash
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_filename($directory, $pageCallback)
+    {
+        return $directory . DIRECTORY_SEPARATOR . $pageCallback . '.inc.php';
+    }
+
+    /**
+     * Gets the standardized name for a page permission
+     *
+     * @param  string  $page
+     * @param  boolean $inArray
+     * @return string
+     */
+    function get_permission_name($page)
+    {
+        return 'access ' . get_module_name() . ' ' . $page;
+    }
+
+    /**
+     * Gets the standardized theme callback
+     */
+    function get_theme_callback_name()
+    {
+        return __NAMESPACE__ . '\theme_callback';
+    }
+
+    /**
+     * Gets the standardized name for a page theme
+     *
+     * @param string $theme
+     * @return string
+     */
+    function get_theme_name($theme)
+    {
+        return get_module_name() . '_' . $theme;
+    }
+
+    /**
+     * Gets the username in all circumstances.
+     *
+     * @return string
+     */
+    function get_username()
+    {
+        global $user;
+        if (isset($user->name)) {
+            return $user->name;
+        }
+        else if (isset($user->uid) && ($user->uid === 0)) {
+            return 'anonymous';
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * This method is called first before every page request by each include file.
+     */
+    function load_resources()
+    {
+        require __DIR__ . '/vendor/autoload.php';
+        mhc_error_and_exception_handler_register('revive_usage_data', 'slawson@mooreheadcomm.com');
+    }
+
+    /**
+     * Used in hook_menu() as a theme callback.
+     *
+     * @return string
+     */
+    function theme_callback()
+    {
+        return 'revive_usage_data';
+    }
+}
+
+namespace {
+
+    /**
+     * Implementation of hook_help().
+     *
+     * @param string $path
+     * @param string $arg
+     */
+    function revive_usage_data_help($path, $arg)
+    {
+        switch ($path) {
+        case 'admin/help#revive_usage_data':
+            return t('<p>The purpose of this module is to filter and display usage data for the revive system</p>');
+        }
+    }
+
+    /**
+     * Implementation of hook_menu().
+     *
+     * @return array
+     */
+    function revive_usage_data_menu()
+    {
+        return array(
+            // New menu items are appended here.
+            'data/usage/ajax_callback' => array(
+                'title' => 'Revive Data Ajax Callback',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(ReviveUsageData\get_permission_name('revive_usage_data_revive_data_ajax_callback')),
+                'file' => ReviveUsageData\get_page_callback_filename('includes/pages', 'revive_usage_data_revive_data_ajax_callback'),
+                'menu_name' => 'main-menu',
+                'page callback' => ReviveUsageData\get_page_callback_name('_revive_usage_data_revive_data_ajax_callback'),
+                'type' => MENU_CALLBACK,
+            ),
+
+            'data/usage/load_defaults' => array(
+                'title' => 'Usage Data',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(ReviveUsageData\get_permission_name('revive_usage_data_revive_usage_data')),
+                'file' => ReviveUsageData\get_page_callback_filename('includes/pages', 'revive_usage_data_revive_usage_data'),
+                'menu_name' => 'main-menu',
+                'page callback' => ReviveUsageData\get_page_callback_name('_revive_usage_data_revive_usage_data'),
+                'type' => MENU_NORMAL_ITEM,
+            ),
+
+            'data/usage' => array(
+                'title' => 'Revive Usage Data',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(ReviveUsageData\get_permission_name('revive_usage_data_revive_usage_data')),
+                'file' => ReviveUsageData\get_page_callback_filename('includes/pages', 'revive_usage_data_revive_usage_data'),
+                'menu_name' => 'main-menu',
+                'page callback' => ReviveUsageData\get_page_callback_name('_revive_usage_data_revive_usage_data'),
+                'type' => MENU_CALLBACK,
+            ),
+
+        );
+    }
+
+    /**
+     * Implements hook_permission()
+     *
+     * Permissions name strings follow the pattern:
+     *     "access <moduleName> <includeFileBasename>"
+     * Example:
+     *     module name = revive_usage_data, page include file = new_page.inc.php
+     *     therefore permission name = "access revive_usage_data new_page"
+     */
+    function revive_usage_data_permission()
+    {
+        return array(
+            // New permissions are appended here.
+            ReviveUsageData\get_permission_name('revive_usage_data_revive_data_ajax_callback') => array(
+                'title' => 'Access to the Revive Data Ajax Callback page.'
+            ),
+            ReviveUsageData\get_permission_name('revive_usage_data_revive_usage_data') => array(
+                'title' => 'Access to the Revive Usage Data page.'
+            ),
+        );
+    }
+
+    /**
+     * This is an implementation of hook_theme().
+     *
+     * @param array  $existing
+     * @param string $type
+     * @param string $theme
+     * @param string $path
+     *
+     * @return array
+     */
+    function revive_usage_data_theme($existing, $type, $theme, $path)
+    {
+        return array(
+            // New themes are appended here.
+            'revive_usage_data_revive_data_ajax_callback_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'revive_usage_data_revive_data_ajax_callback',
+                'variables' => array(
+                )
+            ),
+            'revive_usage_data_revive_usage_data_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'revive_usage_data_revive_usage_data',
+                'variables' => array(
+                    'reviveUsageDataTable' => null,
+                    'ReviveUsageDataForm' => null,
+                    'dataCount' => null,
+                    'successfulRevives' => null,
+                )
+            ),
+        );
+    }
+
+    /**
+     * formerly a Drupal dependency
+     * Processes a URL query parameter array to remove unwanted elements.
+     *
+     * @param $query
+     *   (optional) An array to be processed. Defaults to $_GET.
+     * @param $exclude
+     *   (optional) A list of $query array keys to remove. Use "parent[child]" to
+     *   exclude nested items. Defaults to array('q').
+     * @param $parent
+     *   Internal use only. Used to build the $query array key for nested items.
+     *
+     * @return
+     *   An array containing query parameters, which can be used for url().
+     */
+    function mhc_get_query_parameters(array $query = NULL, array $exclude = array('q'), $parent = '') {
+        // Set defaults, if none given.
+        if (!isset($query)) {
+            $query = $_GET;
+        }
+        // If $exclude is empty, there is nothing to filter.
+        if (empty($exclude)) {
+            return $query;
+        }
+        elseif (!$parent) {
+            $exclude = array_flip($exclude);
+        }
+
+        $params = array();
+        foreach ($query as $key => $value) {
+            $string_key = ($parent ? $parent . '[' . $key . ']' : $key);
+            if (isset($exclude[$string_key])) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $params[$key] = mhc_get_query_parameters($value, $exclude, $string_key);
+            }
+            else {
+                $params[$key] = $value;
+            }
+        }
+
+        return $params;
+    }
+
+    // Miscellaneous hooks are appended here.
+}

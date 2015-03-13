@@ -1,0 +1,259 @@
+<?php
+/**
+ * We must have a better way to submit Iconic invoices to Dynamics.
+ *
+ * @file
+ * @date 2014-12-15
+ * @author Samuel Lawson <slawson@mooreheadcomm.com>
+ */
+
+namespace IconicsInvoicing {
+
+    function get_base_url()
+    {
+        global $base_url;
+
+        return $base_url;
+    }
+
+    /**
+     * Will build the block content function name and call it.
+     *
+     * @param string $blockName
+     *
+     * @return array
+     */
+    function get_block_content($blockName)
+    {
+        require_once('includes/blocks/' . $blockName . '.php');
+
+        return call_user_func(__NAMESPACE__ . '\\_' . $blockName);
+    }
+
+    /**
+     * Will get the environment name.
+     *
+     * @return string
+     */
+    function get_environment_name()
+    {
+        global $conf;
+
+        if (!isset($conf['mhc_environment'])) {
+            throw new \RuntimeException('"mhc_environment" is missing from the $conf variable in "settings.php".');
+        }
+
+        return $conf['mhc_environment'];
+    }
+
+    function get_host_name()
+    {
+        $urlTokens = parse_url(strtolower(get_base_url()));
+
+        return $urlTokens['host'];
+    }
+
+    /**
+     * Gets the name of the module
+     *
+     * @return string Name of the module
+     */
+    function get_module_name()
+    {
+        return basename(__FILE__, '.module');
+    }
+
+    /**
+     * Gets the path of the module
+     *
+     * @return string Path relative to DRUPAL_ROOT.
+     */
+    function get_module_path()
+    {
+        // Must be relative to be used with Drupal functions
+        return drupal_get_path('module', get_module_name());
+    }
+
+    /**
+     * Gets the standardized name for the page callback
+     *
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_name($pageCallback)
+    {
+        return __NAMESPACE__ . '\\' . $pageCallback;
+    }
+
+    /**
+     * Gets the standardized name for the page callback filename
+     *
+     * @param string $directory Relative path to the module path without leading or trailing slash
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_filename($directory, $pageCallback)
+    {
+        return $directory . DIRECTORY_SEPARATOR . $pageCallback . '.inc.php';
+    }
+
+    /**
+     * Gets the standardized name for a page permission
+     *
+     * @param  string  $page
+     * @param  boolean $inArray
+     *
+     * @return string
+     */
+    function get_permission_name($page)
+    {
+        return 'access ' . get_module_name() . ' ' . $page;
+    }
+
+    function get_query_parameters()
+    {
+        return \drupal_get_query_parameters();
+    }
+
+    /**
+     * Gets the standardized theme callback
+     */
+    function get_theme_callback_name()
+    {
+        return __NAMESPACE__ . '\theme_callback';
+    }
+
+    /**
+     * Gets the standardized name for a page theme
+     *
+     * @param string $theme
+     *
+     * @return string
+     */
+    function get_theme_name($theme)
+    {
+        return get_module_name() . '_' . $theme;
+    }
+
+    /**
+     * Gets the username in all circumstances.
+     *
+     * @return string
+     */
+    function get_username()
+    {
+        global $user;
+        if (isset($user->name)) {
+            return $user->name;
+        }
+        else if (isset($user->uid) && ($user->uid == 0)) {
+            return 'anonymous';
+        }
+
+        return 'unknown';
+    }
+
+    function is_https()
+    {
+        global $is_https;
+
+        return $is_https;
+    }
+
+    /**
+     * This method is called first before every page request by each include file.
+     */
+    function load_resources()
+    {
+        // Register autoloader.
+        require __DIR__ . '/vendor/autoload.php';
+
+        // Register exception handler.
+
+        \Tracy\Debugger::mhcEnable(
+            get_environment_name(),
+            'iconics_invoicing',
+            'slawson@mooreheadcomm.com'
+        );
+    }
+
+    /**
+     * Used in hook_menu() as a theme callback.
+     *
+     * @return string
+     */
+    function theme_callback()
+    {
+        return 'iconics_invoicing';
+    }
+}
+
+namespace {
+
+    /**
+     * hook_menu().
+     *
+     * @return array
+     */
+    function iconics_invoicing_menu()
+    {
+        return array(
+            //@ New menu items are appended here.
+            'apps/warehouse/iconic_invoicing' => array(
+                'title' => 'Iconic Dynamics Invoicing',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(IconicsInvoicing\get_permission_name('iconics_invoicing_iconic_dynamics_invoicing')),
+                'file' => IconicsInvoicing\get_page_callback_filename('includes/pages', 'iconics_invoicing_iconic_dynamics_invoicing'),
+                'menu_name' => 'main-menu',
+                'page callback' => IconicsInvoicing\get_page_callback_name('_iconics_invoicing_iconic_dynamics_invoicing'),
+                'type' => MENU_NORMAL_ITEM,
+            ),
+        );
+    }
+
+    /**
+     * hook_permission()
+     *
+     * Permissions name strings follow the pattern:
+     *     "access <moduleName> <includeFileBasename>"
+     * Example:
+     *     module name = scorecard_v4_ui, page include file = new_page.inc.php
+     *     therefore permission name = "access scorecard_v4_ui new_page"
+     *
+     * @return array
+     */
+    function iconics_invoicing_permission()
+    {
+        return array(
+            //@ New permissions are appended here.
+            IconicsInvoicing\get_permission_name('iconics_invoicing_iconic_dynamics_invoicing') => array(
+                'title' => 'Access to the Iconic Dynamics Invoicing page.'
+            ),
+        );
+    }
+
+    /**
+     * hook_theme().
+     *
+     * @return array
+     */
+    function iconics_invoicing_theme($existing, $type, $theme, $path)
+    {
+        return array(
+            //@ New themes are appended here.
+            'iconics_invoicing_iconic_dynamics_invoicing_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'iconics_invoicing_iconic_dynamics_invoicing',
+                'variables' => array(
+                    'iconicDynamicsInvoicingForm' => null,
+                    'btnProcessSelected' => null,
+                    'iconicsInvoiceTable' => null,
+                )
+            ),
+        );
+    }
+
+    //@ Miscellaneous hooks are appended here.
+}

@@ -1,0 +1,23 @@
+name = CCRS
+description = Provides Reporting for VZW CCRS
+core = 7.x
+package = Moorehead Communications Content
+configure = admin/content/ccrs
+
+dependencies[] = mhc_acl
+dependencies[] = mhc_autoloader
+dependencies[] = mhc_development_mode
+dependencies[] = mhc_error_and_exception_handler
+dependencies[] = mhc_locations
+dependencies[] = scrubber
+
+files[] = includes/ccrs.class.php
+files[] = includes/ccrs.data.class.php
+files[] = includes/ccrs.estimator.class.php
+files[] = includes/ccrs.estimator.simplified.class.php
+files[] = includes/ccrs.forms.class.php
+files[] = includes/ccrs.options.class.php
+files[] = includes/ccrs.payout.class.php
+files[] = includes/ccrs.payout.simplified.class.php
+files[] = includes/ccrs.updater.class.php
+files[] = includes/ccrs.mailer.class.php

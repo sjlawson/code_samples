@@ -1,0 +1,327 @@
+<?php
+/**
+ * CCRS Managment Page
+ *
+ * @file
+ * @date 2014-03-21
+ * @author Samuel Lawson <slawson@mooreheadcomm.com>
+ */
+
+namespace MHCCcrsManager {
+
+    /**
+     * Will build the block content function name and call it.
+     *
+     * @param string $blockName
+     *
+     * @return array
+     */
+    function get_block_content($blockName)
+    {
+        require_once('includes/blocks/' . $blockName . '.php');
+        return call_user_func(__NAMESPACE__ . '\\_' . $blockName);
+    }
+
+    /**
+     * Gets the name of the module
+     *
+     * @return string Name of the module
+     */
+    function get_module_name()
+    {
+        return basename(__FILE__, '.module');
+    }
+
+    /**
+     * Gets the path of the module
+     *
+     * @return string Path relative to DRUPAL_ROOT.
+     */
+    function get_module_path()
+    {
+        // Must be relative to be used with Drupal functions
+        return drupal_get_path('module', get_module_name());
+    }
+
+    /**
+     * Gets the standardized name for the page callback
+     *
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_name($pageCallback)
+    {
+        return __NAMESPACE__ . '\\' . $pageCallback;
+    }
+
+    /**
+     * Gets the standardized name for the page callback filename
+     *
+     * @param string $directory Relative path to the module path without leading or trailing slash
+     * @param string $pageCallback
+     *
+     * @return string
+     */
+    function get_page_callback_filename($directory, $pageCallback)
+    {
+        return $directory . DIRECTORY_SEPARATOR . $pageCallback . '.inc.php';
+    }
+
+    /**
+     * Gets the standardized name for a page permission
+     *
+     * @param  string  $page
+     * @param  boolean $inArray
+     * @return string
+     */
+    function get_permission_name($page)
+    {
+        return 'access ' . get_module_name() . ' ' . $page;
+    }
+
+    /**
+     * Gets the standardized theme callback
+     */
+    function get_theme_callback_name()
+    {
+        return __NAMESPACE__ . '\theme_callback';
+    }
+
+    /**
+     * Gets the standardized name for a page theme
+     *
+     * @param string $theme
+     * @return string
+     */
+    function get_theme_name($theme)
+    {
+        return get_module_name() . '_' . $theme;
+    }
+
+    /**
+     * Gets the username in all circumstances.
+     *
+     * @return string
+     */
+    function get_username()
+    {
+        global $user;
+        if (isset($user->name)) {
+            return $user->name;
+        }
+        else if (isset($user->uid) && ($user->uid === 0)) {
+            return 'anonymous';
+        }
+
+        return 'unknown';
+    }
+
+    /**
+     * This method is called first before every page request by each include file.
+     */
+    function load_resources()
+    {
+        require __DIR__ . '/vendor/autoload.php';
+        mhc_error_and_exception_handler_register('mhc_ccrs_manager', 'slawson@mooreheadcomm.com');
+    }
+
+    /**
+     * Used in hook_menu() as a theme callback.
+     *
+     * @return string
+     */
+    function theme_callback()
+    {
+        return 'mhc_ccrs_manager';
+    }
+}
+
+namespace {
+
+    /**
+     * Implementation of hook_help().
+     *
+     * @param string $path
+     * @param string $arg
+     */
+    function mhc_ccrs_manager_help($path, $arg)
+    {
+        switch ($path) {
+        case 'admin/help#mhc_ccrs_manager':
+            return t('<p>The purpose of this module is ...</p>');
+        }
+    }
+
+    /**
+     * Implementation of hook_menu().
+     *
+     * @return array
+     */
+    function mhc_ccrs_manager_menu()
+    {
+        return array(
+            // New menu items are appended here.
+            'apps/accounting/ccrs/manager/edit_bucket_category' => array(
+                'title' => 'Edit Bucket Category',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_bucket_category')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_edit_bucket_category'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_edit_bucket_category'),
+                'type' => MENU_CALLBACK,
+                ),
+            'apps/accounting/ccrs/manager/list_bucket_categories' => array(
+                'title' => 'Bucket Categories',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_list_bucket_categories')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_list_bucket_categories'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_list_bucket_categories'),
+                'type' => MENU_NORMAL_ITEM,
+                ),
+            'apps/accounting/ccrs/manager/edit_payable' => array(
+                'title' => 'Edit Payable',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_payable')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_edit_payable'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_edit_payable'),
+                'type' => MENU_CALLBACK,
+                ),
+            'apps/accounting/ccrs/manager/edit_receivable' => array(
+                'title' => 'Edit Receivable',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_receivable')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_edit_receivable'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_edit_receivable'),
+                'type' => MENU_CALLBACK,
+                ), 
+            'apps/accounting/ccrs/manager/edit_bucket' => array(
+                'title' => 'Create/Edit Bucket',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_editbucket')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_editbucket'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_editbucket'),
+                'type' => MENU_CALLBACK,
+                ),
+            'apps/accounting/ccrs/manager/list_buckets' => array(
+                'title' => 'CCRS Bucket Manager',
+                'description' => '',
+                'access callback' => 'mhc_acl_check_access',
+                'access arguments' => array(MHCCcrsManager\get_permission_name('mhc_ccrs_manager_ccrs_manager')),
+                'file' => MHCCcrsManager\get_page_callback_filename('includes/pages', 'mhc_ccrs_manager_ccrs_manager'),
+                'menu_name' => 'main-menu',
+                'page callback' => MHCCcrsManager\get_page_callback_name('_mhc_ccrs_manager_ccrs_manager'),
+                'type' => MENU_NORMAL_ITEM,
+                ),
+                        
+        );
+    }
+
+    /**
+     * Implements hook_permission()
+     *
+     * Permissions name strings follow the pattern:
+     *     "access <moduleName> <includeFileBasename>"
+     * Example:
+     *     module name = mhc_ccrs_manager, page include file = new_page.inc.php
+     *     therefore permission name = "access mhc_ccrs_manager new_page"
+     */
+    function mhc_ccrs_manager_permission()
+    {
+        return array(
+            // New permissions are appended here.
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_bucket_category') => array(
+                'title' => 'Access to the Edit Bucket Category page.'
+                ),
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_list_bucket_categories') => array(
+                'title' => 'Access to the list_bucket_categories page.'
+                ),
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_payable') => array(
+                'title' => 'Access to the Edit Payable page.'
+                ),
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_edit_receivable') => array(
+                'title' => 'Access to the Edit Receivable page.'
+                ),
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_editbucket') => array(
+                'title' => 'Access to the editbucket page.'
+                ),
+            MHCCcrsManager\get_permission_name('mhc_ccrs_manager_ccrs_manager') => array(
+                'title' => 'Access to the CCRS Manager page.'
+                ),
+        );
+    }
+
+    /**
+     * This is an implementation of hook_theme().
+     *
+     * @param array  $existing
+     * @param string $type
+     * @param string $theme
+     * @param string $path
+     *
+     * @return array
+     */
+    function mhc_ccrs_manager_theme($existing, $type, $theme, $path)
+    {
+        return array(
+            // New themes are appended here.
+            'mhc_ccrs_manager_edit_bucket_category_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_edit_bucket_category',
+                'variables' => array( 
+                	'EditBucketCategoryForm' => null
+                     ),
+                ),
+            'mhc_ccrs_manager_list_bucket_categories_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_list_bucket_categories',
+                'variables' => array( 
+                	'ListBucketCategoriesForm' => null,
+                	'bucketCategoriesTable' => null
+                     ),
+                ),
+            'mhc_ccrs_manager_edit_payable_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_edit_payable',
+                'variables' => array(
+                    'EditPayableForm'=>null
+                     ),
+                ),
+            'mhc_ccrs_manager_edit_receivable_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_edit_receivable',
+                'variables' => array(
+                	'editReceivableForm' => null
+                     ),
+                ),
+            'mhc_ccrs_manager_editbucket_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_editbucket',
+                'variables' => array(
+                    'EditbucketForm' => null,
+                    'BucketReceivablesTable' => null,
+                    'BucketPayablesTable' => null,
+                    'bucketID' => null
+                     ),
+                ),
+            'mhc_ccrs_manager_ccrs_manager_page' => array(
+                'path' => $path . '/templates',
+                'template' => 'mhc_ccrs_manager_ccrs_manager',
+                'variables' => array(
+                    'CcrsManagerForm' => null
+                     ),
+                ),
+        );
+    }
+
+    // Miscellaneous hooks are appended here.
+}

@@ -1,0 +1,6 @@
+<?php
+
+drupal_maintenance_theme();
+$userErrorMessage = t('There was an unxepected error; IT has been notified. ') . l('Please try again.', 'home');
+drupal_set_message($userErrorMessage, 'error');
+echo theme('maintenance_page');

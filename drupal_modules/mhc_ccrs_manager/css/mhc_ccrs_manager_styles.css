@@ -1,0 +1,48 @@
+@CHARSET "UTF-8";
+a.link_addnew {
+font-size: 25px;
+font-weight: bolder;
+}
+.clearfix {
+    clear: both;
+}
+.spacer {
+    height: 10px;
+}
+input[type="submit"] {
+    clear: none !important;
+    float: right;
+}
+
+#receivables_table th:last-child {
+    width: 70px !important;
+}
+#payables_table th:last-child {
+    width: 70px !important;
+}
+
+.form-item-term {
+    width: 120px;
+    float: left;
+}
+.form-item-isM2M {
+    width: 150px;
+    float: left;
+    height: 30px;
+    margin-top: 23px !important;
+}
+
+.ui-datepicker-prev {
+    float: left;
+}
+
+.ui-datepicker-next {
+    float: left;
+}
+#ccrs_manager_preview {
+    width: 450px;
+    border: 2px #88baff inset;
+    height: 200px;
+    float: right;
+    overflow: scroll;
+}

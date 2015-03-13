@@ -1,0 +1,67 @@
+
+.iconicFilterControl {
+    float: left;
+    width: 50%
+}
+
+.iconicFilterControl .form-item-invoiceStatus .form-type-checkbox {
+    float: left;
+    padding: 10px;
+}
+
+.iconics-filter-button-container {
+    float: right;
+}
+
+.ui-datepicker-title {
+    text-align: center;
+}
+
+.ui-datepicker-prev {
+    float: left;
+}
+
+.ui-datepicker-next {
+    float: right;
+}
+
+
+.modal-box-view-invoice {
+    padding: 15px;
+}
+
+.modal-box-view-invoice-inner {
+
+}
+
+.invoice-view,
+.customer-view {
+    width: 45%;
+    float: left;
+    margin: 5px;
+}
+
+a.button.small.processInvoice,
+a.button.small.previewInvoice,
+a.button.small.viewOrder,
+a.button.small.forceInvoice {
+    font-weight: bold;
+    display: inline-block;
+    width: 110px;
+}
+
+a.button.small.viewProblem {
+    font-weight: bold;
+    display: inline-block;
+    width: 110px;
+    color: red;
+}
+
+a.button.small.disabled {
+   /* pointer-events: none; */
+   /* cursor: default; */
+   /* color: gray; */
+   /* background: none; */
+   /* background-color: #999999 */
+}
+

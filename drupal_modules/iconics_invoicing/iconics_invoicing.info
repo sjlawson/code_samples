@@ -1,0 +1,7 @@
+name = Iconics Invoicing
+description = We must have a better way to submit Iconic invoices to Dynamics.
+core = 7.x
+package = Moorehead Communications Content
+
+dependencies[] = mhc_acl
+

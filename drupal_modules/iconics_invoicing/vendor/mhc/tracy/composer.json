@@ -1,0 +1,28 @@
+{
+    "name": "mhc/tracy",
+    "description": "MHC port of Tracy, a useful PHP debugger, for use in our Drupal 7 modules.",
+    "keywords": ["debug", "debugger"],
+    "homepage": "http://tracy.nette.org",
+    "license": ["BSD-3-Clause", "GPL-2.0", "GPL-3.0"],
+    "authors": [
+        {
+            "name": "David Grudl",
+            "homepage": "http://davidgrudl.com"
+        },
+        {
+            "name": "Nette Community",
+            "homepage": "http://nette.org/contributors"
+        },
+        {
+            "name": "Kevin Weber",
+            "email": "kweber@mooreheadcomm.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.1"
+    },
+    "autoload": {
+        "classmap": ["src/Tracy"],
+        "files": ["src/shortcuts.php"]
+    }
+}

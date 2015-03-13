@@ -1,0 +1,8 @@
+name = MHCCcrsManager
+description = CCRS Managment Page
+core = 7.x
+package = Moorehead Communications Content
+
+dependencies[] = mhc_acl
+dependencies[] = mhc_development_mode
+dependencies[] = mhc_error_and_exception_handler

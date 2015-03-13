@@ -1,0 +1,245 @@
+<?php
+
+function _ccrs_update_cron() {
+    $u = new ccrsUpdater(new ccrsOptions(false));
+    print $error = $u->importFiles();
+
+    if ($error && $error !== true) {
+        $u->setSetting('isUpdating', 0);
+
+        $recipients = array(
+            'slawson@mooreheadcomm.com',
+        );
+
+        $message = "The following error was reported when TCC CCRS Update ran at: "
+            . date("Y-m-d H:i:s") . "
+
+            Error message:
+            "
+            . $error;
+
+        $mailer = new ccrsMailer();
+        $mailer->setRecipients($recipients);
+        $mailer->setSubject("TCC CCRS Update Error");
+        $mailer->setMessage($message);
+
+        $result = $mailer->sendCcrsMail();
+
+        if (!$result) {
+            echo $result;
+            echo var_dump($mailer);
+        }
+    }
+
+}
+
+function ccrs_access_callback_for_cron($permission = '', $account = null) {
+    global $user;
+
+    //echo $_SERVER['REMOTE_ADDR'];
+    //
+    //Anonymous access gets checked by IP address otherwise check if they have the permission
+    if ((isset($user) === true) && (isset($user->uid) === true) && ($user->uid == '0')) {
+        $ipsToAllow = array(
+            '172.16.4.181', //Repos server
+            '127.0.0.1', //All IPs from the webserver
+            '192.168.1.245',
+        );
+
+        return mhc_acl_check_access_by_ip($ipsToAllow);
+    } else {
+        return mhc_acl_check_access($permission);
+    }
+}
+
+//the config form
+function ccrs_config_form($form, &$form_state) {
+    $form['config'] = array(
+        '#markup' => 'There are no configurable items at this time.',
+    );
+    return $form;
+}
+
+function ccrs_detail_export() {
+    $options = new ccrsOptions();
+
+    $cd = new ccrsData($options);
+    $cd->searchDetails();
+    $cd->export('_commissions');
+}
+
+function ccrs_help($path, $arg) {
+    switch ($path) {
+        case 'admin/help#ccrs':
+            return '<p>' . t('There is no help at this time.') . '</p>';
+            break;
+    }
+}
+
+function ccrs_main() {
+    $options = new ccrsOptions();
+    $c = new ccrsForms($options);
+
+    $page['form'] = drupal_get_form('ccrs_search_form');
+
+    $cd = new ccrsData($options);
+    $cd->search();
+
+    $page['searchByTable'] = $c->getSearchResultTable($cd->searchByTable, $cd->searchSummary);
+
+    return $page;
+}
+
+function ccrs_menu() {
+    $items = array();
+    $module_path = drupal_get_path('module', 'ccrs');
+
+    //this is the landing page
+    $items['apps/accounting/ccrs'] = array(
+        'title' => 'CCRS',
+        'page callback' => 'ccrs_main',
+        'page arguments' => array(),
+        'access arguments' => array('access ccrs'),
+        'access callback' => array('mhc_acl_check_access'),
+        'menu_name' => 'main-menu',
+        'type' => MENU_NORMAL_ITEM,
+    );
+
+    //details export
+    $items['apps/accounting/ccrs/export/detail'] = array(
+        'title' => 'Detail Export',
+        'page callback' => 'ccrs_detail_export',
+        'page arguments' => array(),
+        'access arguments' => array('access ccrs'),
+        'access callback' => array('mhc_acl_check_access'),
+        'type' => MENU_CALLBACK,
+    );
+
+    //payout export
+    $items['apps/accounting/ccrs/export/payout'] = array(
+        'title' => 'Payout Export',
+        'page callback' => 'ccrs_payout_export',
+        'page arguments' => array(),
+        'access arguments' => array('access ccrs'),
+        'access callback' => array('mhc_acl_check_access'),
+        'type' => MENU_CALLBACK,
+    );
+
+    //update cron link
+    $items['apps/accounting/ccrs/cron/update'] = array(
+        'title' => 'Payout Export',
+        'page callback' => '_ccrs_update_cron',
+        'page arguments' => array(),
+        'access callback' => array('ccrs_access_callback_for_cron'),
+        'access arguments' => array('cron ccrs'),
+        'type' => MENU_CALLBACK,
+    );
+
+    //ccrs updater console
+    $items['apps/accounting/ccrs/updater'] = array(
+        'title' => 'Updater',
+        'page callback' => 'ccrs_updater',
+        'page arguments' => array(),
+        'access arguments' => array('manage ccrs'),
+        'access callback' => array('mhc_acl_check_access'),
+        'menu_name' => 'main-menu',
+        'type' => MENU_NORMAL_ITEM,
+    );
+
+    //ccrs settings
+    /*
+    $items['apps/accounting/ccrs/settings'] = array(
+        'title' => 'Settings',
+        'page callback' => '_ccrs_settings',
+        'page arguments' => array(),
+        'access arguments' => array('manage ccrs'),
+        'access callback' => array('mhc_acl_check_access'),
+        'menu_name' => 'main-menu',
+        'type' => MENU_NORMAL_ITEM,
+        'file path' => $module_path . '/includes',
+        'file' => 'settings.inc',
+    );
+    */
+
+    return $items;
+}
+
+function ccrs_page_alter($page) {
+    $args = arg();
+
+    if(in_array("ccrs", $args)) {
+        drupal_add_js(drupal_get_path('module', 'ccrs') . '/js/ccrs.js');
+        drupal_add_css(drupal_get_path('module', 'ccrs') . '/css/ccrs.css');
+    }
+}
+
+function ccrs_payout_export() {
+    $options = new ccrsOptions();
+
+    $cd = new ccrsData($options);
+    $cd->searchPayout();
+
+    $cd->export('_payouts');
+}
+
+function ccrs_permission() {
+    return array(
+        'access ccrs' => array(
+            'title' => t('View CCRS Reporting'),
+        ),
+        'cron ccrs' => array(
+            'title' => t('Cron CCRS'),
+        ),
+        'manage ccrs' => array(
+            'title' => t('Manage CCRS'),
+        ),
+    );
+}
+
+function ccrs_search_form($form, &$form_state) {
+    $c = new ccrsForms(new ccrsOptions());
+    return $c->getSearchForm();
+}
+
+function ccrs_search_form_submit(&$form, &$form_state) {
+    $activeTab = $form_state['input']['verticalTabs__active_tab'];
+    $type = explode('_', $activeTab);
+    $type = $type[0];
+    $locationValues = $form_state['values'][$type . '_select'];
+    $locationValues = (is_array($locationValues)) ? implode('|', $locationValues) : $locationValues;
+
+    $tableValues = $form_state['values']['table_select'];
+    $tableValues = (is_array($tableValues)) ? implode('|', $tableValues) : $tableValues;
+    drupal_goto("apps/accounting/ccrs///{$type}/{$locationValues}/{$form_state['values']['beg_date']['month']}/{$form_state['values']['beg_date']['year']}/{$form_state['values']['end_date']['month']}/{$form_state['values']['end_date']['year']}/{$tableValues}");
+}
+
+function ccrs_updater() {
+    global $user;
+
+    if (($user->name == 'jdavid_admin') || ($user->name == 'jdavid_admin')) {
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+    }
+    $page['update_form'] = drupal_get_form('ccrs_updater_form');
+    return $page;
+}
+
+function ccrs_updater_form($form, &$form_state) {
+    $options = new ccrsOptions(false);
+    $c = new ccrsForms($options);
+
+    $form = $c->getUpdaterForm($form_state);
+
+    return $form;
+}
+
+function ccrs_updater_form_submit($form, &$form_state) {
+    $u = new ccrsUpdater(new ccrsOptions(false));
+    $error = $u->importFiles();
+    if ($error) {
+        form_set_error('', $error);
+        $u->setSetting('isUpdating', 0);
+    } else {
+        drupal_set_message('CCRS has updated.');
+    }
+}

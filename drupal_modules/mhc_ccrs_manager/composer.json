@@ -1,0 +1,29 @@
+{
+    "name": "mhc/mhc_ccrs_manager",
+    "description": "CCRS Managment Page",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Samuel Lawson",
+            "email": "slawson@mooreheadcomm.com"
+        }
+    ],
+    "require": {
+        "pimple/pimple": "1.0.2"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-0": {"MHCCcrsManager\\": "includes/classes/"}
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "http://dev.mooreheadcomm.com/~packages/packages"
+        }
+    ],
+    "scripts": {
+        "post-update-cmd": ["echo [WARNING] Deleting all .git dirs", "find vendor | grep .git$ | xargs rm -rf"],
+        "post-install-cmd": ["echo [WARNING] Deleting all .git dirs", "find vendor | grep .git$ | xargs rm -rf"]
+    }
+}
