@@ -42,11 +42,25 @@ class Locations extends ReviveInternalDatabaseTable implements DatabaseTableInte
      */
     public function getLocations()
     {
-        $query = "SELECT * FROM " . self::getTableName();
+        $query = "SELECT *
+                        FROM
+                        " . self::getTableName() ." l
+                        ORDER BY l.`name`
+                 ";
         $stmt = $this->connection->prepareQuery($query);
         $stmt->execute();
 
         return $stmt;
+    }
+
+    public function getLocationNameByID($locationID)
+    {
+        $query = "SELECT loc.`name` FROM ".self::getTableName() . " loc
+                WHERE loc.`locationsID` = :locationID";
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->execute(array(':locationID' => $locationID));
+
+        return $stmt->fetchColumn();
     }
 
 }

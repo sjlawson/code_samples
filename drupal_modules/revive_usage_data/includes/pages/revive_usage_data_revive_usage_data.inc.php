@@ -66,9 +66,15 @@ function _revive_usage_data_revive_usage_data()
     );
 
     $urlParams = $reviveUsageDataPresenter->getUsageDataUrlParams();
-    $usageDataTable = _revive_get_usage_data_table($reviveUsageDataPresenter, $urlParams);
+    $totalRowCount = $reviveUsageDataPresenter->getUsageDataTableCount($urlParams);
+
+    $usageDataTable = _revive_get_usage_data_table($reviveUsageDataPresenter, $urlParams, $totalRowCount);
+
     $successfulReviveFilterArray = $urlParams;
-    $successfulReviveFilterArray['key_filters'][] = 'REDS_OUT_Device_ReviveSuccessful<>1';
+
+    $successfulReviveFilterArray['reviveSuccessful'] = 1;
+    //        $reviveUsageDataPresenter->getBusinessKeyIDFromName('REDS_OUT_Device_ReviveSuccessful') . '<>1';
+
     $pageRenderArray = array(
         '#ReviveUsageDataForm' => drupal_get_form(
             'ReviveUsageData\_revive_usage_data_revive_usage_data_form',
@@ -88,7 +94,7 @@ function _revive_usage_data_revive_usage_data()
             ),
         ),
         '#theme' => 'revive_usage_data_revive_usage_data_page',
-        '#dataCount' => $reviveUsageDataPresenter->getUsageDataTableCount($urlParams),
+        '#dataCount' => $totalRowCount,
         '#successfulRevives' => $reviveUsageDataPresenter->getUsageDataTableCount($successfulReviveFilterArray),
     );
 
@@ -99,12 +105,12 @@ function _revive_usage_data_revive_usage_data()
  * Fetch data and return formatted for Drupal table
  * @return array { header:array(), rows: array(array()) }
  */
-function _revive_get_usage_data_table(ReviveUsageDataPresenter $presenter, array $urlParams)
+function _revive_get_usage_data_table(ReviveUsageDataPresenter $presenter, array $urlParams, $totalRowCount)
 {
     $table['header'] = $presenter->getUsageDataTableHeaders();
     $table['rows'] = $presenter->getUsageDataTableRows(
         $urlParams,
-        _revive_get_usage_data_pager($presenter, $urlParams)
+        _revive_get_usage_data_pager($presenter, $urlParams, $totalRowCount)
     );
 
     return $table;
@@ -114,22 +120,24 @@ function _revive_get_usage_data_table(ReviveUsageDataPresenter $presenter, array
  * Usage data table pager builder
  * @return array { rowCount:int, offset:int }
  */
-function _revive_get_usage_data_pager(ReviveUsageDataPresenter $presenter, array $urlParams)
+function _revive_get_usage_data_pager(ReviveUsageDataPresenter $presenter, array $urlParams, $totalRowCount)
 {
     // Init pager
     $limit['rowCount'] = 20;
-    $page = pager_default_initialize($presenter->getUsageDataTableCount($urlParams), $limit['rowCount'], 0);
+    $page = pager_default_initialize($totalRowCount, $limit['rowCount'], 0);
     $limit['offset'] = $limit['rowCount'] * $page;
 
     return $limit;
 }
 
-function getUrlParamKeyPairs($urlParams)
+function getUrlParamKeyPairs($urlParams, $presenter)
 {
     $keyPairs = array();
     if (!empty($urlParams['key_filters'])) {
         foreach ($urlParams['key_filters'] as $filterPair) {
-            $keyPairs[$filterPair] = $filterPair;
+            $arrFilterPair=explode("<>",$filterPair);
+            $businessKeyName=$presenter->getProcessBusinessKeyNameFromBusinessID($arrFilterPair[0]);
+            $keyPairs[$filterPair] = $businessKeyName."<>".$arrFilterPair[1];
         }
     }
 
@@ -170,10 +178,10 @@ function _revive_usage_data_revive_usage_data_form($form, &$form_state, ReviveUs
                     '#type' => 'container',
                     '#attributes' => array(
                         'class' => array(
-                            'businesskey-filter-containter'
+                            'businesskey-filter-containter',
+                            'edit-revive-business-key-value-loading-container'
                         )
                     ),
-
                     'revive_business_key' => array(
                         '#type' => 'select',
                         '#title' => 'Key Name',
@@ -213,7 +221,7 @@ function _revive_usage_data_revive_usage_data_form($form, &$form_state, ReviveUs
                 'business_key_queue' => array(
                     '#type' => 'select',
                     '#title' => t('&nbsp;'),
-                    '#options' => getUrlParamKeyPairs($urlParams),
+                    '#options' => getUrlParamKeyPairs($urlParams, $presenter),
                     '#multiple' => true,
                     '#size' => 7,
                     '#validated' => true,
@@ -223,6 +231,28 @@ function _revive_usage_data_revive_usage_data_form($form, &$form_state, ReviveUs
                     '#type' => 'markup',
                     '#markup' => '<a class="button queue-add-remove" id="btn-remove-selected-from-queue">Remove</a>',
                 ),
+            ),
+
+            'revive_usage_data_date_fieldset' => array(
+                '#type' => 'fieldset',
+                '#title' => t('By Date')
+                        . '<div class="clearbutton-container">
+                        <a class="button fieldset-button" id="revive-clear-dates-button" >'
+                        . t('Clear').'</a></div>',
+
+                'revive_start_date' => array(
+                    '#type' => 'textfield',
+                    '#title' => 'From:',
+                    '#size' => 20,
+                    '#default_value' => $urlParams['start_date']
+                ),
+
+                'revive_end_date' => array(
+                    '#type' => 'textfield',
+                    '#title' => 'To:',
+                    '#size' => 20,
+                    '#default_value' => $urlParams['end_date']
+                )
             ),
 
             'clear_markup_2' => array(
@@ -261,29 +291,7 @@ function _revive_usage_data_revive_usage_data_form($form, &$form_state, ReviveUs
                     '#default_value' => isset($urlParams['locationID']) ? $urlParams['locationID']  : '',
                     '#multiple' => true,
                     '#size' => 7,
-                )
-            ),
-
-            'revive_usage_data_date_fieldset' => array(
-                '#type' => 'fieldset',
-                '#title' => t('By Date')
-                        . '<div class="clearbutton-container">
-                        <a class="button fieldset-button" id="revive-clear-dates-button" >'
-                        . t('Clear').'</a></div>',
-
-                'revive_start_date' => array(
-                    '#type' => 'textfield',
-                    '#title' => 'From:',
-                    '#size' => 20,
-                    '#default_value' => $urlParams['start_date']
                 ),
-
-                'revive_end_date' => array(
-                    '#type' => 'textfield',
-                    '#title' => 'To:',
-                    '#size' => 20,
-                    '#default_value' => $urlParams['end_date']
-                )
             ),
 
             'revive_usage_data_machine_configuration_fieldset' => array(
@@ -318,7 +326,11 @@ function _revive_usage_data_revive_usage_data_form($form, &$form_state, ReviveUs
                 '#type' => 'submit',
                 '#value' => t('Filter'),
             ),
-        )
+        ),
+        'export-format-advice' => array(
+            '#type' => 'markup',
+            '#markup' => '<p>All exported CSV files are in comma-separated format.</p>',
+        ),
     );
 }
 

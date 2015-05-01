@@ -129,7 +129,7 @@ jQuery.noConflict();
         var selectedValue = $('#edit-revive-business-key').val();
         var optionsHtml = "";
         var dataPath = DRUPAL_PATH +
-            '?action=getDistinctBusinessKeyValuesOptionsList&processName=' + selectedValue;
+            '?action=getDistinctBusinessKeyValuesOptionsList&processKeyID=' + selectedValue;
 
         $.get( dataPath  , function( data ) {
             var dataObject = $.parseJSON(data);
@@ -141,15 +141,17 @@ jQuery.noConflict();
             $('#edit-revive-business-key-value').html(
                 optionsHtml
             );
+
+            removeLoadingIcon('#edit-revive-business-key-value-loading');
         });
-        removeLoadingIcon('#edit-revive-business-key-value-loading');
+
     }
 
     function displayLoadingIcon(containerElementID)
     {
         var loaderHtml = '<img src="' + MODULE_PATH + '/images/loading-small.gif" alt="Loading" />';
         $(containerElementID).html(loaderHtml);
-        $(containerElementID).css('display', 'block');
+        $(containerElementID).css({'display':'block', 'z-index':'1000'});
     }
 
     function removeLoadingIcon(containerElementID)
@@ -185,8 +187,10 @@ function addSelectedKeyPair()
 {
     (function($) {
         var keyName = $('#edit-revive-business-key').val();
+        var keyNameText = $('#edit-revive-business-key option:selected').text();;
+
         var keyValue = $('#edit-revive-business-key-value').val();
-        var currentQueue = "<option value='" + keyName + "<>" + keyValue + "'>" + keyName + "<>" + keyValue + "</option>";
+        var currentQueue = "<option value='" + keyName + "<>" + keyValue + "'>" + keyNameText+ "<>" + keyValue + "</option>";
         var entryExists = false;
         $('#edit-business-key-queue option').each(function() {
             if ($(this).val() == keyName + "<>" + keyValue) {

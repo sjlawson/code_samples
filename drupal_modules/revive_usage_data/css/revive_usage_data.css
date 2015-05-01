@@ -8,81 +8,12 @@ width: 80%;
 
 }
 
-/* form .form-item { */
-/* margin-top: 0.5em; */
-/* margin-bottom: 0.5em; */
-/* } */
-
-/* .fieldset-wrapper { */
-/* margin-top: 25px; */
-/* } */
-
-/* .revive_usage_form_container fieldset { */
-/*     background: #ffffff; */
-/*     border: 1px solid #cccccc; */
-/*     margin-top: 10px; */
-/*     margin-bottom: 32px; */
-/*     padding: 0 0 10px; */
-/*     position: relative; */
-/*     top: 12px; */
-/*     -khtml-border-radius: 4px; */
-/*     -moz-border-radius: 4px; */
-/*     -webkit-border-radius: 4px; */
-/*     border-radius: 4px; */
-/* } */
-
 .revive_usage_form_container label {
     font-weight: bold;
     font-size: 0.929em;
     display: block;
     text-align: left;
 }
-
-/* .revive_usage_form_container legend { */
-/*     background: #dbdbdb; */
-/*     border: 1px solid #ccc; */
-/*     border-bottom: none; */
-/*     color: #3b3b3b; */
-/*     display: block; */
-/*     height: 2em; */
-/*     left: -1px; */
-/*     font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif; */
-/*     line-height: 2; */
-/*     padding: 0; */
-/*     position: absolute; */
-/*     text-indent: 10px; */
-/*     text-shadow: 0 1px 0 #fff; */
-/*     top: -12px; */
-/*     width: 100%; */
-/*     border-top-left-radius: 4px; */
-/*     border-top-right-radius: 4px; */
-/* } */
-
-/* form fieldset legend { */
-/*     font-size: 11pt; */
-/* } */
-
-/* .revive_usage_form_container .fieldset-legend { */
-
-/*     background: #dbdbdb; */
-/*     border: 1px solid #ccc; */
-/*     border-bottom: none; */
-/*     color: #3b3b3b; */
-/*     display: block; */
-/*     height: 2em; */
-/*     left: -1px; */
-/*     font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif; */
-/*     line-height: 2; */
-/*     padding: 0; */
-/*     position: absolute; */
-/*     text-indent: 10px; */
-/*     text-shadow: 0 1px 0 #fff; */
-/*     font-size: 11pt; */
-/* } */
-
-/* .revive_usage_form_container legend { */
-/*     text-align: left; */
-/* } */
 
 a.button {
     background: #fff 0 0;
@@ -133,23 +64,11 @@ a.mini-table-process-expand {
     float: right;
 }
 
-/* .revive_usage_form_container select { */
-/*     min-width: 130px; */
-/*     line-height: 1.5; */
-/*     font-size: 9pt; */
-/* } */
-
-.revive_usage_form_container .businesskey-filter-containter {
-    /* width: 615px; */
-    /* height: 160px; */
-    /* position: relative; */
-}
-
 .revive_usage_form_container #edit-revive-usage-data-business-key-fieldset {
-    height: 210px;
+
     float: left;
     padding-right: 0px;
-    /* text-align: center; */
+
 }
 
 .revive_usage_form_container #edit-revive-usage-data-business-key-fieldset .fieldset-wrapper {
@@ -169,24 +88,28 @@ a.mini-table-process-expand {
    /* width: 330px; */
 }
 
+.edit-revive-business-key-value-loading-container {
+    position: relative;
+}
+
 #edit-revive-business-key-value-loading {
-    float: right;
-    margin-right: 160px;
+    position: absolute;
     display: none;
 }
 
 .revive_usage_form_container #edit-revive-business-key-value  {
-    width: 210px;
+    width: 400px;
     margin: 5px 10px 5px 5px;
 }
 
 .revive_usage_form_container #edit-revive-business-key-value option {
-    width: 170px;
+    width: 95%;
 }
 
 .revive_usage_form_container #edit-revive-business-key-queue-fieldset {
     float: left;
     font-size: 12px;
+    width: 635px;
     /* width: 420px; */
     /* height: 210px; */
     /* text-align: center; */
@@ -205,29 +128,29 @@ a.mini-table-process-expand {
 }
 
 .revive_usage_form_container #edit-revive-usage-data-machine-fieldset {
-    /* width: 300px; */
-    /* height: 180px; */
     float: left;
 }
 
 .revive_usage_form_container #edit-revive-usage-data-location-fieldset {
-    /* height: 180px; */
-    /* width: 200px; */
     float: left;
 }
 
 .revive_usage_form_container #edit-revive-usage-data-location-fieldset select {
-    /* width: 190px; */
+
 }
 
 .revive_usage_form_container #edit-revive-usage-data-date-fieldset {
-    height: 170px;
-    /* width: 190px; */
+    height: 200px;
+    width: 220px;
     float: left;
 }
 
+.revive_usage_form_container fieldset legend {
+    min-height: 28px;
+}
+
 .revive_usage_form_container #edit-revive-usage-data-date-fieldset input {
-    /* width: 140px; */
+
 }
 
 .ui-datepicker-title {
@@ -244,12 +167,9 @@ a.mini-table-process-expand {
 
 .revive_usage_form_container #edit-revive-usage-data-machine-configuration-fieldset {
     float: left;
-    /* width: 240px; */
-    /* height: 180px; */
 }
 
 .revive_usage_form_container #edit-revive-usage-data-machine-configuration-fieldset select {
-    /* width: 200px; */
     min-width: 200px;
 }
 
@@ -266,7 +186,6 @@ div.process-mini-table {
     max-height: 150px;
     padding: 0px;
     overflow: hidden;
-    /* overflow: scroll; */
 }
 
 div.process-mini-table table td {
@@ -278,7 +197,6 @@ div.process-mini-table table td:first-child {
 }
 
 div.revive-internal-process-table {
-    /* min-width: 1050px; */
 }
 
 div.revive-internal-process-table div.revive-internal-filter-results {
@@ -295,7 +213,7 @@ div.revive-internal-process-table div.revive-internal-filter-results label {
     margin-right: 15px;
 }
 
-
+/* ToDo: replace with jQuery modal dialogue */
 #lightbox-revivedata {
     position: absolute;
     top: 0px;
@@ -329,7 +247,6 @@ div.revive-internal-process-table div.revive-internal-filter-results label {
 #lightbox-revivedata div.process-lightbox-table #revive-lightbox-header #closeAnchor {
     float: right;
 }
-
 
 #lightbox-shadow-revivedata {
     position: absolute;

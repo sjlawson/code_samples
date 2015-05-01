@@ -47,9 +47,10 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
     public function getKeyTypes($likeString)
     {
         $query = "SELECT
-              *
+               pbk.processName, p.*
             FROM " .
             self::getTableName() . " p
+            INNER JOIN revive_api.process_business_keys pbk on (pbk.processBusinessKeysId=p.processBusinessKeysId)
             WHERE `processName` LIKE :likeString ";
 
         $stmt = $this->connection->prepareQuery($query);
@@ -65,9 +66,7 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
      */
     public function getBusinessKeys()
     {
-        $query = "SELECT p.`processName`, p.* FROM " .
-            self::getTableName() . " p
-                GROUP BY p.`processName`
+        $query = "SELECT p.`processName`, p.* FROM  revive_api.process_business_keys p
                 ORDER BY p.`processName`";
 
         $stmt = $this->connection->prepareQuery($query);
@@ -77,31 +76,85 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
     }
 
     /**
-     * Select method, specifically for process i/o export
-     * @param $filters - input from form
-     * @return PDOStatement
+     * get array of processBusinessKeysID limited to REDS_IN and REDS_OUT
+     *
+     * @return string csv
      */
-    public function getIOforExport($filters)
+    public function getInOutBusinessKeysString()
+    {
+        $query = "
+        SELECT GROUP_CONCAT(pbk.`processBusinessKeysID`)
+        FROM
+          process_business_keys pbk
+        WHERE
+          ( pbk.`processName` LIKE 'REDS_IN%' OR pbk.`processName` LIKE 'REDS_OUT%')
+        ";
+
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->execute();
+
+        return $stmt->fetchColumn();
+    }
+
+    /**
+     * Get an array of processID with current filter
+     *
+     * @param array $filters
+     * @return string csv
+     */
+    public function getProcessIDstringFromFilter($filters)
     {
         // filter the filter
         $reviveDataFilters = $this->formatDataFilter($filters);
         $params = array();
         $whereClause = $this->buildWhereClause($reviveDataFilters, $params);
 
-        $query = "SELECT
-                      xp.`processID`,
-                      xp.`processDatetime`,
-                      pdv.`processName`,
-                      pdv.`processValue`
-                  FROM " . Processes::getTableName() . " xp "
-            . $this->buildJoinsClause()
-                  . $whereClause .
-                  " AND (pdv.`processName` LIKE 'REDS_IN%' OR pdv.`processName` LIKE 'REDS_OUT%')
-                    GROUP BY pdv.`processName`, pdv.`processValue`
-                    ORDER BY xp.`processID`, pdv.`processTimestamp` ASC ";
+        // first get list of filtered process IDs
+        $query = "
+        SELECT
+          GROUP_CONCAT(DISTINCT(p.processID))
+        FROM "
+            . Processes::getTableName() . " p "
+            . $whereClause;
+        ;
 
         $stmt = $this->connection->prepareQuery($query);
         $stmt->execute($params);
+
+        return $stmt->fetchColumn();
+    }
+
+    /**
+     * Select method, specifically for process i/o export
+     * @param $filters - input from form
+     * @return PDOStatement
+     */
+    public function getIOforExport($filters)
+    {
+        $processIDList = $this->getProcessIDstringFromFilter($filters);
+
+        $inOutBusinessKeys = $this->getInOutBusinessKeysString();
+
+        $query = "
+        SELECT
+          pdv.`processID`,
+          pdv.`datetimeAdded`,
+          pbk.`processName`,
+          pdv.`processValue`
+        FROM
+          process_data_values pdv
+          INNER JOIN process_business_keys pbk USING (`processBusinessKeysID`)
+        WHERE
+          pdv.`processID` IN (
+          " . $processIDList . "
+          )
+          AND pdv.`processBusinessKeysID` IN (
+          " . $inOutBusinessKeys . "
+          )
+          ORDER BY pdv.`processID`, pdv.`datetimeAdded`";
+
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->execute();
 
         return $stmt;
     }
@@ -118,20 +171,21 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         // filter the filter
         $reviveDataFilters = $this->formatDataFilter($filters);
         $params = array();
+
         $whereClause = $this->buildWhereClause($reviveDataFilters, $params);
-        $havingClause = $this->buildHavingClause($reviveDataFilters, $params);
+
         $limitClause = (isset($limit['rowCount']) && isset($limit['offset'])) ? " LIMIT " .
             $limit['offset'] . "," . $limit['rowCount'] : '';
 
         $query = "SELECT
-                  xp.*,
-                  ril.`name` AS locationName
+                  p.*
                 FROM "
-            . Processes::getTableName() ." xp "
-            . $this->buildJoinsClause()
+            . Processes::getTableName() ." p "
             . $whereClause
-            . " GROUP BY xp.`processID` ORDER BY xp.`processDateTime` DESC "
+            . " GROUP BY p.`processID` ORDER BY p.`processDateTime` DESC "
             . $limitClause;
+
+        // echo "<pre>$query</pre>";
 
         $stmt = $this->connection->prepareQuery($query);
         $stmt->execute($params);
@@ -149,18 +203,38 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         $reviveDataFilters = $this->formatDataFilter($filters);
         $params = array();
         $whereClause = $this->buildWhereClause($reviveDataFilters, $params);
-        $havingClause = $this->buildHavingClause($reviveDataFilters, $params);
 
-        $query = "SELECT
-                  COUNT(DISTINCT(xp.`processID`))
+        $query = "
+                SELECT
+                COUNT(DISTINCT(p.`processID`))
                 FROM "
-            . Processes::getTableName() ." xp "
-            . $this->buildJoinsClause()
+            . Processes::getTableName() ." p "
+
             . $whereClause;
 
+        // echo "<pre>$query</pre>";
 
         $stmt = $this->connection->prepareQuery($query);
         $stmt->execute($params);
+
+        return $stmt->fetchColumn();
+    }
+
+    /**
+     * Get a process businesskey ID from name
+     *
+     * @param $bkName string
+     * @return processBusinessKeysId
+     */
+    public function getBusinessKeyIDFromName($bkName)
+    {
+        $query = "SELECT
+                        pbk.processBusinessKeysId
+                  FROM revive_api.process_business_keys pbk
+                  WHERE
+                        pbk.processName = :processName";
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->execute(array(':processName' => $bkName));
 
         return $stmt->fetchColumn();
     }
@@ -180,10 +254,12 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
                         ril.`name` AS locationName,
                         xp.`machineID`,
                         xp.`processID`,
-                        xp.`processName`,
+                        pbk.`processName`,
                         xp.`processValue`
                   FROM " . Processes::getTableName() . " xp "
-                  . $this->buildJoinsClause()
+            . "LEFT JOIN "
+            . \ReviveUsageData\DataAccess\Tables\ReviveInternal\Locations::getTableName()
+                . " ril USING (`locationsID`) "
                   . $whereClause .
                   " ORDER BY locationName, xp.`processID`, xp.`machineID`, xp.`processName` ";
 
@@ -206,13 +282,17 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
      */
     private function buildJoinsClause()
     {
-        $joinClause = "
-            LEFT JOIN "
-            . self::getTableName()
-                . " pdv USING (`processID`)
-            LEFT JOIN "
-            . \ReviveUsageData\DataAccess\Tables\ReviveInternal\Locations::getTableName()
-                . " ril USING (`locationsID`) ";
+        $joinClause = "";
+
+        /* $joinClause = " */
+        /*     LEFT JOIN " */
+        /*     . self::getTableName() */
+        /*     . " pdv USING (`processID`) "; */
+
+        /* $joinClause .= " */
+        /*     LEFT JOIN " */
+        /*     . \ReviveUsageData\DataAccess\Tables\ReviveInternal\Locations::getTableName() */
+        /*         . " ril USING (`locationsID`) "; */
 
         return $joinClause;
     }
@@ -237,52 +317,59 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
      */
     private function buildWhereClause($reviveDataFilters, &$params = null)
     {
-        $whereClause = "WHERE 1 ";
+        $whereClause = "WHERE 1";
+
+        $processListQuery = "";
+
+        $processListQuery = "";
+        $procListQueryJoins = "";
+        $procListQueryWhere = " WHERE procSummary.`processID` IS NOT NULL
+                ";
 
         // Take care of business keys first
         if (!empty($reviveDataFilters['key_filters']) ) {
-                // this is a special filter for the business key queue
-
+            // this is a special filter for the business key queue
             $keyNameValues = $reviveDataFilters['key_filters'];
-            $whereClause .= " AND xp.`processID` IN ( SELECT p.`processID` FROM "
-                . self::getTableName() . " p ";
 
-            $subQueryJoins = "";
-            $subQueryWhere = " WHERE 1 ";
+
             for ($i=0; $i < count($keyNameValues); $i++ ) {
 
-                    $keyPair = explode('<>',$keyNameValues[$i]);
-                    $keyName = $keyPair[0];
-                    $keyValue = $keyPair[1];
-                    $subQueryJoins .= "INNER JOIN " . self::getTableName() . " p".$i . " USING (processID)
-";
-                    $subQueryWhere .= "AND p".$i.".`processName` = '" . $keyName
-                        . "' AND p".$i.".`processValue` = '" . $keyValue . "' ";
-                }
-                $whereClause .= $subQueryJoins . $subQueryWhere . " ) ";
-            }
-
-        //now get the rest
-        foreach ($reviveDataFilters as $field => $value) {
-            if (!empty($value)  && $field != 'key_filters' ) {
-                if (is_array($value) ) {
-                    $whereClause .= " AND " . $field . " IN ( '" . implode("','",$value) . "' ) ";
-                } elseif ($field == 'start_date') {
-                    $whereClause .= " AND xp.`processDatetime` >= :startDate ";
-                    $params[':startDate'] = date('Y-m-d H:i:s', $value);
-                } elseif ($field == 'end_date') {
-                    $whereClause .= " AND xp.`processDatetime` <= :endDate ";
-                    $params[':endDate'] = date('Y-m-d H:i:s', $value);
-                } else {
-                    $whereClause .= " AND " . $field . " = :".str_replace('.','_',$field);
-                    if (is_array($params)) {
-                        $params[':'.str_replace('.','_',$field)] = $value;
-                    }
-
-                }
+                $keyPair = explode('<>',$keyNameValues[$i]);
+                $keyName = $keyPair[0];
+                $keyValue = $keyPair[1];
+                $procListQueryJoins .= " INNER JOIN " . self::getTableName() . " p".$i . "
+                ON (p.`processID` = p$i.`processID`)
+                ";
+                $procListQueryWhere .= " AND p".$i.".`processBusinessKeysID` = '" . $keyName
+                    . "' AND p".$i.".`processValue` = '" . $keyValue . "' ";
             }
         }
 
+        $ljClause = " LEFT JOIN " . Processes::getTableName() . " procSummary ON (
+                procSummary.`processID` = p.`processID`
+                ";
+        foreach ($reviveDataFilters as $field => $value) {
+            if (!empty($value)  && $field != 'key_filters' ) {
+                if (is_array($value) ) {
+                    $ljClause .= " AND " . $field . " IN ( '" . implode("','",$value) . "' ) ";
+                } elseif ($field == 'start_date') {
+                    $ljClause .= " AND procSummary.`processDatetime` >= '".date('Y-m-d H:i:s', $value)."' ";
+                    // $params[':startDate'] = date('Y-m-d H:i:s', $value);
+                } elseif ($field == 'end_date') {
+                    $ljClause .= " AND procSummary.`processDatetime` <= '".date('Y-m-d H:i:s', $value)."' ";
+                    // $params[':endDate'] = date('Y-m-d H:i:s', $value);
+                } else {
+                    $ljClause .= " AND " . $field . " = :".str_replace('.','_',$field);
+                    if (is_array($params)) {
+                        $params[':'.str_replace('.','_',$field)] = $value;
+                    }
+                }
+            }
+        }
+        $ljClause .= " )
+        ";
+
+        $whereClause = str_replace('1 AND', '', $ljClause . $procListQueryJoins . $procListQueryWhere);
 
         return $whereClause;
     }
@@ -328,11 +415,11 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         }
         //the alias 'xp' is for the process data actually being returned or eXported
         if (!empty($filters['processID'])) {
-            $returnFilter['xp.processID'] = $filters['processID'];
+            $returnFilter['p.processID'] = $filters['processID'];
         }
 
         if (!empty($filters['machineID'])) {
-            $returnFilter['xp.machineID'] = $filters['machineID'];
+            $returnFilter['p.machineID'] = $filters['machineID'];
         }
 
         /* if (!empty($filters['processValue'])) { */
@@ -340,7 +427,7 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         /* } */
 
         if(!empty($filters['configurationsID'])) {
-            $returnFilter['xp.configurationsID'] = $filters['configurationsID'];
+            $returnFilter['p.configurationsID'] = $filters['configurationsID'];
         }
 
         /* if (!empty($filters['processName'])) { */
@@ -348,7 +435,7 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         /* } */
 
         if (!empty($filters['locationID'])) {
-            $returnFilter['xp.locationsID'] = $filters['locationID'];
+            $returnFilter['p.locationsID'] = $filters['locationID'];
         }
 
         if (!empty($filters['start_date'])) {
@@ -357,6 +444,10 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
 
         if (!empty($filters['end_date'])) {
             $returnFilter['end_date'] = strtotime($filters['end_date'] . ' 23:59:59');
+        }
+
+        if( !empty($filters['reviveSuccessful'])) {
+            $returnFilter['procSummary.reviveSuccessful'] = intval($filters['reviveSuccessful']);
         }
 
         return $returnFilter;
@@ -370,13 +461,33 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
     public function getDistinctValuesFromKeyName($keyName)
     {
         $query = "SELECT DISTINCT
-                      (p.`processValue`), p.`processName`
+                      (p.`processValue`), p.`processBusinessKeysID`
                   FROM " . self::getTableName() . " p " .
-                  "WHERE p.`processName` = :keyName
+                  "WHERE p.`processBusinessKeysID` = :keyName
                   GROUP BY p.`processValue`";
 
         $stmt = $this->connection->prepareQuery($query);
         $stmt->bindValue(':keyName', $keyName, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Find distinct values from key name
+     * @param keyname
+     * @return array PDO::FETCH_ASSOC
+     */
+    public function getDistinctValuesFromKeyID($keyID)
+    {
+        $query = "SELECT DISTINCT
+                      (p.`processValue`), p.`processBusinessKeysID`
+                  FROM " . self::getTableName() . " p " .
+                  "WHERE p.`processBusinessKeysID` = :keyID
+                  GROUP BY p.`processValue`";
+
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->bindValue(':keyID', $keyID, PDO::PARAM_STR);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -394,19 +505,23 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
 
         foreach ($optionalFilter as $processName) {
             if(empty($optionalFilterClause)) {
-                $optionalFilterClause = " AND ( `processName` = '$processName' ";
+                $optionalFilterClause = " AND ( pbk.`processName` = '$processName' ";
             } else {
-                $optionalFilterClause .= " OR `processName` = '$processName' ";
+                $optionalFilterClause .= " OR pbk.`processName` = '$processName' ";
             }
         }
 
         $optionalFilterClause = empty($optionalFilterClause) ? '' : $optionalFilterClause . ' ) ';
 
-        $query = "SELECT DISTINCT(p.`processName`), p.`processValue`
+        $query = "SELECT
+                        pbk.`processName`,
+                        p.`processValue`,
+                        p.`processTimestamp`
                   FROM " . self::getTableName() . " p
+                  INNER JOIN revive_api.process_business_keys pbk on (pbk.processBusinessKeysId=p.processBusinessKeysId)
                   WHERE p.`processID` = :processID "
                         . $optionalFilterClause .
-                  "ORDER BY p.`processName` ";
+                  "ORDER BY pbk.`processName`, p.`processTimestamp` ";
 
         if ($limitInt) {
             $query .= " LIMIT " . $limitInt;
@@ -422,24 +537,28 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
     public function getLimitedSet($processID)
     {
         $query = "SELECT
-                  `machineID`,
-                  `processID`,
-                  `processName`,
-                  `processValue`,
-                  `processTimestamp`
-                FROM " . self::getTableName() . "
-                WHERE processID = :processID
-                  AND (
-                        processName = 'REDS_PROCESS_TableCycles_TableTime_TemperaturePlaten'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_TemperatureDessicant'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_TemperatureInjection'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_RHChamber'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_RHAmbient'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_ModeType'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_Pressure'
-                        OR processName = 'REDS_PROCESS_TableCycles_TableTime_Current'
-                      )
-                ORDER BY `processTimestamp` ASC";
+                  p.`machineID`,
+                  p.`processID`,
+                  pbk.`processName`,
+                  p.`processValue`,
+                  p.`processTimestamp`
+                FROM " . self::getTableName() . " p
+                INNER JOIN revive_api.process_business_keys pbk on (pbk.processBusinessKeysId=p.processBusinessKeysId)
+                WHERE p.processID = :processID
+                  AND p.processBusinessKeysId IN (172, 170, 171, 169, 167, 165, 166, 164, 256,257,258,259,260,261,262)
+                ORDER BY p.`processTimestamp` ASC";
+
+        /*              (
+                        pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_TemperaturePlaten'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_TemperatureDessicant'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_TemperatureInjection'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_RHChamber'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_RHAmbient'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_ModeType'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_Pressure'
+                        OR pbk.processName = 'REDS_PROCESS_TableCycles_TableTime_Current'
+                        )
+        */
 
         $stmt = $this->connection->prepareQuery($query);
         $stmt->bindValue(':processID', $processID, PDO::PARAM_STR);
@@ -448,4 +567,44 @@ class ProcessDataValues extends ReviveApiDatabaseTable implements DatabaseTableI
         return $stmt;
     }
 
+    /**
+     * Find get process business key from key name
+     * @param keyname
+     * @return array PDO::FETCH_ASSOC
+     */
+    public function getProcessBusinessKeyFromKeyName($keyName)
+    {
+        $query = "SELECT  p.`processBusinessKeysID`
+                  FROM revive_api.process_business_keys p " .
+                      "WHERE p.`processName` = :keyName";
+
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->bindValue(':keyName', $keyName, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Find get process business key from key name
+     * @param keyname
+     * @return array PDO::FETCH_ASSOC
+     */
+    public function getProcessBusinessKeyNameFromBusinessID($keyID)
+    {
+        $query = "SELECT  p.`processName`
+                  FROM revive_api.process_business_keys p " .
+                      "WHERE p.`processBusinessKeysID` = :keyID";
+
+        $stmt = $this->connection->prepareQuery($query);
+        $stmt->bindValue(':keyID', $keyID, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getProcessNameAndValueFromProcessesID()
+    {
+
+    }
 }

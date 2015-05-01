@@ -56,10 +56,11 @@ class ReviveUsageDataPresenter extends AbstractPresenter
 
         $urlParams = array_merge($defaultParams, $this->getParameters);
 
-        if(strpos($_SERVER['REQUEST_URI'], 'load_defaults')) 
+        if(strpos($_SERVER['REQUEST_URI'], 'load_defaults'))
         {
-            $urlParams['key_filters'] = array('REDS_IN_Mode<>Live');
-            //ttrusty 
+            $dataSet = $this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']->getProcessBusinessKeyFromKeyName('REDS_IN_Mode');
+            $urlParams['key_filters'] = array($dataSet[0]['processBusinessKeysID'].'<>Live');
+
             $urlParams['start_date'] = date('m/d/Y', time() - 60 * 60 * 24);
             $urlParams['end_date'] = date('m/d/Y');
         }
@@ -77,10 +78,22 @@ class ReviveUsageDataPresenter extends AbstractPresenter
         $dataSet = $this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']->getBusinessKeys();
 
         foreach ($dataSet as $result) {
-            $options[$result['processName']] = str_replace('REDS_','',$result['processName']);
+            $options[$result['processBusinessKeysID']] = str_replace('REDS_','',$result['processName']);
         }
 
         return $options;
+    }
+
+    /**
+     * get PBK id from name
+     *
+     * @param $processName
+     * @return id
+     */
+    public function getBusinessKeyIDFromName($processName)
+    {
+        return $this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']
+            ->getBusinessKeyIDFromName($processName);
     }
 
     /**
@@ -91,9 +104,10 @@ class ReviveUsageDataPresenter extends AbstractPresenter
     {
         $options = array();
 
-        if (!empty($urlParams['processName'])) {
-            $keyName = $urlParams['processName'];
-            $dataSet = $this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']->getDistinctValuesFromKeyName($keyName);
+        if (!empty($urlParams['processKeyID'])) {
+            $keyID = $urlParams['processKeyID'];
+            $dataSet = $this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']
+                ->getDistinctValuesFromKeyID($keyID);
 
             foreach ($dataSet as $result) {
                 $options[$result['processValue']] = $result['processValue'];
@@ -218,11 +232,14 @@ class ReviveUsageDataPresenter extends AbstractPresenter
             /* if (is_array($historyJson)) { */
             /*     $result['locationName'] = $historyJson['locationName']; */
             /* } */
+            $locationName = $this->dataAccessContainer['Table.ReviveInternal.Locations']
+                ->getLocationNameByID($result['locationsID']);
 
             $rows[] = array(
                 'data' => array(
-                    $result['locationName'],
+                    //$result['locationName'],
                     /* $result['machineID'], */
+                    $locationName,
                     $result['processID'] .
                         '<br /><a rel="' . $result['processID'] .
                         '" class="button revive-process-export-button"
@@ -253,7 +270,6 @@ class ReviveUsageDataPresenter extends AbstractPresenter
             'REDS_IN_Peril_DryAttempted',
             'REDS_OUT_Device_ReviveSuccessfulSecondary',
             'REDS_OUT_Device_ReviveSuccessfulPartial',
-            /* 'REDS_IN_Device_Manufacturer', */
             'REDS_IN_Device_Model',
             'REDS_IN_Peril_ChargedPost',
         );
@@ -310,8 +326,18 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                         <table>";
 
             foreach ($dataSet as $row) {
+                if($row['processName'] == 'REDS_IN_CheckinTime') {
+                    $row['processValue'] = date('Y-m-d g:ia', $row['processValue']);
+                }
+
+                if($row['processTimestamp'] == '1969-12-31 19:00:00' ) {
+                    $row['processTimestamp'] = '';
+                }
+
                 $miniTableHtml .= "<tr><td>" . $row['processName']
-                    . "</td><td>" . $row['processValue'] . "</td></tr>";
+                    . "</td><td>" . $row['processValue'] . "</td>"
+                    . "</td><td>" . $row['processTimestamp'] . "</td>"
+                    . "</tr>";
             }
 
             $miniTableHtml .= "</table></div>";
@@ -362,11 +388,11 @@ class ReviveUsageDataPresenter extends AbstractPresenter
             );
 
             foreach ($metaData as $metaRow) {
-                fputcsv($fh, $metaRow);
+                fputcsv($fh, $metaRow, ",");
             }
 
             foreach ($dataSet as $row) {
-                fputcsv($fh, array($row['processName'],$row['processValue'] ) );
+                fputcsv($fh, array($row['processName'],$row['processValue'] ) , ",");
             }
 
             fclose($fh);
@@ -379,7 +405,6 @@ class ReviveUsageDataPresenter extends AbstractPresenter
         return array(
             'date',
             'TemperaturePlaten',
-            'TemperatureDessicant',
             'TemperatureInjection',
             'Pressure',
             'RHChamber',
@@ -402,7 +427,7 @@ class ReviveUsageDataPresenter extends AbstractPresenter
 
         $fp = fopen( 'php://output', 'w' );
 
-        fputcsv($fp, $this->getDLogHeaders());
+        fputcsv($fp, $this->getDLogHeaders(), ",");
         $row = $this->cleanRow();
 
         while($processDataValue = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -413,33 +438,35 @@ class ReviveUsageDataPresenter extends AbstractPresenter
             if(!$this->checkEmptyRow($row)) {
                 if($processDataValue['processTimestamp'] != $row['date']  )  {
                     // write row
-                    fputcsv($fp, $row);
+                    fputcsv($fp, $row, ",");
                     $row = $this->cleanRow();
                 }
             }
 
             switch ($processDataValue['processName']) {
                 case 'REDS_PROCESS_TableCycles_TableTime_TemperaturePlaten' :
+                case 'REDS_PROCESS_TemperatureRORPlaten':
                     if(!empty($row['TemperaturePlaten'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
 
                     $row['TemperaturePlaten'] = $processDataValue['processValue'];
                     break;
-                case 'REDS_PROCESS_TableCycles_TableTime_TemperatureDessicant' :
-                    if(!empty($row['TemperatureDessicant'])) {
-                        fputcsv($fp, $row);
-                        $row = $this->cleanRow();
-                        $row['date'] = $processDataValue['processTimestamp'];
-                    }
+                /* case 'REDS_PROCESS_TableCycles_TableTime_TemperatureDessicant' : */
+                /*     if(!empty($row['TemperatureDessicant'])) { */
+                /*         fputcsv($fp, $row, ","); */
+                /*         $row = $this->cleanRow(); */
+                /*         $row['date'] = $processDataValue['processTimestamp']; */
+                /*     } */
 
-                    $row['TemperatureDessicant'] = $processDataValue['processValue'];
-                    break;
+                /*     $row['TemperatureDessicant'] = $processDataValue['processValue']; */
+                /*     break; */
                 case 'REDS_PROCESS_TableCycles_TableTime_TemperatureInjection' :
+                case 'REDS_PROCESS_TemperatureRORInjection':
                     if(!empty($row['TemperatureInjection'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -447,8 +474,9 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                     $row['TemperatureInjection'] = $processDataValue['processValue'];
                     break;
                 case 'REDS_PROCESS_TableCycles_TableTime_Pressure' :
+                case 'REDS_PROCESS_VacuumMax':
                     if(!empty($row['Pressure'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -456,8 +484,10 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                     $row['Pressure'] = $processDataValue['processValue'];
                     break;
                 case 'REDS_PROCESS_TableCycles_TableTime_RHChamber' :
+                case 'REDS_PROCESS_RHChamberMax':
+                case 'REDS_PROCESS_RHChamberMin':
                     if(!empty($row['RHChamber'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -465,8 +495,9 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                     $row['RHChamber'] = $processDataValue['processValue'];
                     break;
                 case 'REDS_PROCESS_TableCycles_TableTime_RHAmbient' :
+                case 'REDS_PROCESS_TemperatureAmbientMax':
                     if(!empty($row['RHAmbient'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -475,7 +506,7 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                     break;
                 case 'REDS_PROCESS_TableCycles_TableTime_ModeType' :
                     if(!empty($row['ModeType'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -484,7 +515,7 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                     break;
                 case 'REDS_PROCESS_TableCycles_TableTime_Current' :
                     if(!empty($row['Current'])) {
-                        fputcsv($fp, $row);
+                        fputcsv($fp, $row, ",");
                         $row = $this->cleanRow();
                         $row['date'] = $processDataValue['processTimestamp'];
                     }
@@ -500,7 +531,7 @@ class ReviveUsageDataPresenter extends AbstractPresenter
                 $row['date'] = $processDataValue['processTimestamp'];
             }
 
-            fputcsv($fp, array_values($row));
+            fputcsv($fp, array_values($row), ",");
             $row = null;
         }
 
@@ -533,7 +564,6 @@ class ReviveUsageDataPresenter extends AbstractPresenter
         return array(
             'date' => '',
             'TemperaturePlaten' => '',
-            'TemperatureDessicant' => '',
             'TemperatureInjection' => '',
             'Pressure' => '',
             'RHChamber' => '',
@@ -561,14 +591,19 @@ class ReviveUsageDataPresenter extends AbstractPresenter
 
         $fp = fopen( 'php://output', 'w' );
         $headerArray = array('processID','datetimeAdded','processName','processValue');
-        fputcsv($fp, $headerArray, "\t");
+        fputcsv($fp, $headerArray, ",");
 
         while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            fputcsv($fp, $row, "\t");
+            fputcsv($fp, $row, ",");
         }
 
         fclose($fp);
         exit();
     }
 
+    public function getProcessBusinessKeyNameFromBusinessID($processBusinessKeyID)
+    {
+        $dataRow=$this->dataAccessContainer['Table.ReviveApi.ProcessDataValues']->getProcessBusinessKeyNameFromBusinessID($processBusinessKeyID);
+        return $dataRow[0]['processName'];
+    }
 }

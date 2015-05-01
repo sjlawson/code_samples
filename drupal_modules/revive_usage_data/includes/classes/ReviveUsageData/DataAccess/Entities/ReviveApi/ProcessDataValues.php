@@ -32,10 +32,10 @@ class ProcessDataValues extends AbstractEntity
     protected $processID;
 
     /**
-     * @field processName
-     * @var varchar(64)
+     * @field processBusinessKeysID
+     * @var int(11)
      */
-    protected $processName;
+    protected $processBusinessKeysID;
 
     /**
      * @field processValue
@@ -127,23 +127,23 @@ class ProcessDataValues extends AbstractEntity
     }
 
     /**
-     * Getter for 'processName'.
+     * Getter for 'processBusinessKeysID'.
      *
-     * @return varchar(64)
+     * @return int(11)
      */
-    public function getProcessName()
+    public function getProcessBusinessKeysID()
     {
-        return $this->processName;
+        return $this->processBusinessKeysID;
     }
 
     /**
-     * Chainable setter for 'processName'.
+     * Chainable setter for 'processBusinessKeysID'.
      *
-     * @param varchar(64) $processName
+     * @param varchar(64) $processBusinessKeysID
      */
-    public function setProcessName($processName)
+    public function setProcessBusinessKeysID($processBusinessKeysID)
     {
-        $this->processName = $processName;
+        $this->processBusinessKeysID = $processBusinessKeysID;
 
         return $this;
     }
